@@ -90,7 +90,7 @@ def create_experiment(path: str | PathLike, config: JulesConfig) -> JulesExperim
     config_path = path / CONFIG_DIR
     config_path.mkdir(exist_ok=True)  # exist_ok=True required if config_path==path
 
-    config.dump(config_path)
+    config.write(config_path)
 
     # NOTE: currently output_dir created on-demand
     # config_output_dir = config.output.get("jules_output").get("output_dir")

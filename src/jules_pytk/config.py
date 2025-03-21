@@ -50,9 +50,8 @@ class JulesConfig:
         """Loads a JulesConfig from a directory containing namelist files."""
         return read_config(config_dir)
 
-    def dump(self, config_dir: str | PathLike) -> None:
+    def write(self, config_dir: str | PathLike) -> None:
         """Writes namelist files to a directory."""
-        # TODO: this should probably be write, not dump (dump can be to string)
         write_config(config_dir, self)
 
     def parameters(self):
@@ -94,7 +93,7 @@ def read_config(config_dir: str | PathLike) -> JulesConfig:
 
 
 def write_config(config_dir: str | PathLike, config: JulesConfig) -> None:
-    """Dumps JulesConfig (i.e. writes namelist files) to a directory."""
+    """Writes JulesConfig (i.e. writes namelist files) to a directory."""
     config_dir = Path(config_dir).resolve()
 
     namelists = [
