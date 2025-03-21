@@ -16,7 +16,6 @@ dependencies = [
     "xarray",
 ]
 description = "A Python toolkit for working with JULES"
-license = "LICENSE"
 readme = "README.md"
 dynamic = ["version"]
 
