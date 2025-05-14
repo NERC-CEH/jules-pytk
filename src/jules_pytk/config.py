@@ -67,7 +67,7 @@ class JulesConfig:
         return getattr(self, namelist).get(group).get(param)
 
 
-type JulesConfigGenerator = Generator[JulesConfig, None, None]
+# type JulesConfigGenerator = Generator[JulesConfig, None, None]
 
 
 # NOTE: unconvinced by my initial decision to maintain functions for i/o rather than
