@@ -7,7 +7,7 @@ name = "jules_pytk"
 authors = [
     {name = "Joe Marsh Rossney", email = "17361029+jmarshrossney@users.noreply.github.com"}
 ]
-requires-python = ">= 3.12"
+requires-python = ">= 3.11"
 dependencies = [
     "f90nml",
     "netcdf4",
