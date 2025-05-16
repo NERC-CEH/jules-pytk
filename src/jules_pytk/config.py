@@ -18,6 +18,7 @@ class JulesConfig:
     """Dataclass representing a full JULES configuration."""
 
     ancillaries: f90nml.Namelist
+    crop_params: f90nml.Namelist
     drive: f90nml.Namelist
     fire: f90nml.Namelist
     imogen: f90nml.Namelist
@@ -43,6 +44,7 @@ class JulesConfig:
     prescribed_data: f90nml.Namelist
     science_fixes: f90nml.Namelist
     timesteps: f90nml.Namelist
+    triffid_params: f90nml.Namelist
     urban: f90nml.Namelist
 
     @staticmethod
