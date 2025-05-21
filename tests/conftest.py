@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from jules_pytk.config import JulesConfig, JulesConfigMeta, JulesNamelists
+from jules_pytk.config import JulesNamelists, JulesInput, JulesConfig
 
 @pytest.fixture
 def config_dir() -> Path:
@@ -15,11 +15,6 @@ def namelists_dir(config_dir) -> Path:
     return config_dir / "namelists"
 
 @pytest.fixture
-def jules_config_meta(config_dir) -> JulesConfigMeta:
-    """An instance of JulesConfigMeta from the test config."""
-    return JulesConfigMeta.load(config_dir)
-
-@pytest.fixture
 def jules_namelists(namelists_dir) -> JulesNamelists:
     """An instance of JulesNamelists from the test config."""
     return JulesNamelists.load(namelists_dir)
@@ -27,4 +22,4 @@ def jules_namelists(namelists_dir) -> JulesNamelists:
 @pytest.fixture
 def jules_config(config_dir) -> JulesConfig:
     """An instance of JulesConfig with the test config loaded."""
-    return JulesConfig.load(config_dir)
+    return JulesConfig.load(config_dir, nml_subdir="namelists")
