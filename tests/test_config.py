@@ -1,37 +1,28 @@
 import dataclasses
+import logging
 from pathlib import Path
+import random
 import tempfile
 
-from jules_pytk.config import JulesConfig
+from jules_pytk.config.config import JulesConfig
+
+logger = logging.getLogger(__name__)
 
 
-
-def test_read_config(config_dir):
+def test_config_load(config_dir):
     """Test that configurations can be read."""
-    _ = JulesConfig.load(config_dir)
+    _ = JulesConfig.load(config_dir, nml_subdir="namelists")
 
-def test_write_config(config):
+def test_config_dump(jules_config):
     """Test that configurations can be written."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir = Path(temp_dir)
+        jules_config.dump(temp_dir, nml_subdir="namelists")
 
-        config.write(temp_dir)
-
-        assert all(
-            [
-                (temp_dir / field.name).with_suffix(".nml").exists()
-                for field in dataclasses.fields(config)
-            ]
-        )
-
-def test_round_trip(config):
+def test_config_round_trip(jules_config):
     """Test that configurations round-trip correctly."""
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        config.write(temp_dir)
+        jules_config.dump(temp_dir, nml_subdir="namelists")
+        reloaded_jules_config = JulesConfig.load(temp_dir, nml_subdir="namelists")
 
-        reloaded_config = JulesConfig.load(temp_dir)
-
-    assert config == reloaded_config
-
-
+    assert reloaded_jules_config == jules_config

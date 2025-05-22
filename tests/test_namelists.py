@@ -1,0 +1,60 @@
+import dataclasses
+import logging
+from pathlib import Path
+import random
+import tempfile
+
+from jules_pytk.config.namelists import JulesNamelists
+
+logger = logging.getLogger(__name__)
+
+
+def test_load(namelists_dir):
+    """Test that namelists can be loaded."""
+    _ = JulesNamelists.load(namelists_dir)
+
+def test_dump(jules_namelists):
+    """Test that JulesNamelists dumps all namelists."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+
+        jules_namelists.dump(temp_dir)
+
+        names = [field.name for field in dataclasses.fields(jules_namelists)]
+
+        assert all(
+            [
+                (temp_dir / name).with_suffix(".nml").exists()
+                for name in names
+            ]
+        )
+
+def test_round_trip(jules_namelists):
+    """Test that JulesNamelists round-trips correctly."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        jules_namelists.dump(temp_dir)
+
+        reloaded_jules_namelists = JulesNamelists.load(temp_dir)
+
+    assert reloaded_jules_namelists == jules_namelists
+
+
+def test_getitem(jules_namelists):
+    a = random.choice([field.name for field in dataclasses.fields(jules_namelists)])
+
+    namelist = jules_namelists[a]
+
+    b = random.choice(list(namelist.keys()))
+
+    group = jules_namelists[(a, b)]
+
+    try:
+        c = random.choice(list(group.keys()))
+    except IndexError:
+        logger.info("Empty namelist: skipping test of (a, b, c) access")
+    else:
+        param = jules_namelists[(a, b, c)]
+
+    # TODO: test for sensible output when invalid a, b, c, or too many
+
+
