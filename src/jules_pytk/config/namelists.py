@@ -6,10 +6,13 @@ from typing import Any, final, Self
 
 import f90nml
 
+from jules_pytk.exceptions import InvalidPath
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 __all__ = ["JulesNamelists"]
+
 
 @final
 @dataclass(kw_only=True)
@@ -54,9 +57,11 @@ class JulesNamelists:
         # Assert that all relative paths are to subdirectories, i.e. aren't
         # given by e.g. "../../file.nc"
         for path in self.file_paths:
-            assert path.expanduser().is_absolute() or path.resolve().is_relative_to(
-                Path.cwd()
-            )
+            if not (
+                path.expanduser().is_absolute()
+                or path.resolve().is_relative_to(Path.cwd())
+            ):
+                raise InvalidPath("Relative paths should not include '..'")
 
     @classmethod
     def load(cls, namelists_dir: str | PathLike) -> Self:
@@ -86,10 +91,11 @@ class JulesNamelists:
         for name in names:
             file_path = (namelists_dir / name).with_suffix(".nml")
             getattr(self, name).write(file_path, force=False)
-        
+
     def __getitem__(
         self, key: str | tuple[str] | tuple[str, str] | tuple[str, str, str]
-    ) -> f90nml.Namelist | Any:
+    ):
+        """Access the namelists/groups/parameters with 1-/2-/3-tuple keys."""
         if isinstance(key, str):
             key = (key,)
         if len(key) == 1:
@@ -101,7 +107,7 @@ class JulesNamelists:
 
     @property
     def parameters(self) -> dict[tuple[str, str, str], Any]:
-        """Return a flattened dict containing all parameters."""
+        """A flattened dict containing all parameters, indexed by 3-tuples."""
         result = {}
         for field in fields(self):
             namelist = getattr(self, field.name)
@@ -111,7 +117,7 @@ class JulesNamelists:
 
     @property
     def files(self) -> dict[tuple[str, str, str], str]:
-        """Return a subset of `parameters` that point to input files."""
+        """A subset of `parameters` that point to input files."""
         valid_extensions = (".nc", ".cdf", ".asc", ".txt", ".dat")
         return {
             key: value
@@ -121,8 +127,10 @@ class JulesNamelists:
 
     @property
     def file_paths(self) -> list[Path]:
+        """List of all unique file paths present in the namelists."""
         return [Path(path) for path in set(self.files.values())]
 
     @property
     def output_dir(self) -> Path:
+        """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
         return Path(getattr(self, "output").get("jules_output").get("output_dir"))

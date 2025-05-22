@@ -12,7 +12,16 @@ def _find_namelists(exec_dir: Path) -> Path:
     # TODO: decide how much effort to put into this
     raise NotImplementedError
 
+
 class JulesConfig:
+    """
+    Class representing a JULES configuration.
+
+    This couples a `JulesNamelists` object with a set of `JulesInput` objects
+    associated with each unique file path specified in the namelists. These
+    `JulesInput` objects can, optionally, be loaded with data and edited to
+    dynamically create new configurations.
+    """
 
     def __init__(self, namelists: JulesNamelists):
         self._namelists = namelists
@@ -33,7 +42,21 @@ class JulesConfig:
         return self.namelists == other.namelists and self.inputs == other.inputs
 
     @classmethod
-    def load(cls, exec_dir: str | PathLike, nml_subdir: str | PathLike | None = None) -> Self:
+    def load(
+        cls, exec_dir: str | PathLike, nml_subdir: str | PathLike | None = None
+    ) -> Self:
+        """Load an existing configuration.
+
+        This requires two paths:
+        1) The directory where JULES is executed.
+        2) The namelists directory, which should be a subdirectory of 1)
+           or the same directory.
+
+        All _relative_ paths in the namelists are loaded into memory to
+        make the configuration portable. _Absolute_ paths are not loaded,
+        since these paths would remain valid when the configuration is dumped
+        to a new location.
+        """
 
         exec_dir = Path(exec_dir).resolve()
 
@@ -52,6 +75,7 @@ class JulesConfig:
         return config
 
     def dump(self, exec_dir: str | PathLike, nml_subdir: str | PathLike = ".") -> None:
+        """Dump the configuration to a new location."""
         exec_dir = Path(exec_dir).resolve()
 
         namelists_dir = exec_dir / nml_subdir
@@ -64,9 +88,9 @@ class JulesConfig:
                 file_path.parent.mkdir(parents=True, exist_ok=True)
                 input.dump(file_path)
 
-    def validate(self) -> bool:
+    def validate(self) -> NotImplemented:
         # TODO: check that all files are accounted for etc
-        ...
+        return NotImplemented
 
 
 type JulesConfigGenerator = Generator[JulesConfig, None, None]

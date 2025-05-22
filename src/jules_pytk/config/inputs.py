@@ -15,6 +15,7 @@ __all__ = [
     "JulesInput",
 ]
 
+
 def read_ascii(path: str | PathLike) -> numpy.ndarray:
     with open(path, "r") as file:
 
@@ -45,6 +46,8 @@ def write_netcdf(data: xarray.Dataset, path: str | PathLike) -> None:
 
 
 class JulesInput:
+    """Representation of a file input to JULES."""
+
     def __init__(self, path_in_namelist: str | PathLike) -> None:
         path_in_namelist = Path(path_in_namelist)
 
@@ -76,13 +79,14 @@ class JulesInput:
         if isinstance(self.data, xarray.Dataset):
             return self.data.identical(other.data)
 
-
     @property
     def path(self) -> Path:
+        """File path as it appears in namelist, as a pathlib.Path object."""
         return self._path
 
     @property
-    def data(self) -> Any:
+    def data(self) -> numpy.ndarray | xarray.Dataset | None:
+        """Data to be associated with this file path."""
         return self._data
 
     @data.setter
@@ -97,21 +101,26 @@ class JulesInput:
 
         self._data = new_data
 
-    def validate(self, namelists: JulesNamelists) -> bool:
+    def validate(self, namelists: JulesNamelists) -> NotImplemented:
         # TODO: should this be called in data setter?
         # NOTE: the idea is to subclass JulesInput and create
         # validators specific to each type of input file, e.g.
         # for driving data etc. This seems like a very big task though.
         return NotImplemented
 
-    def load(self, file_path: str | PathLike = None) -> None:
+    def load(self, file_path: str | PathLike) -> None:
+        """Populate `self.data` with contents of an existing ascii or netcdf file."""
         # TODO: warn if provided file path does not match self.file_path
         # TODO: handle absolute
         # TODO: warn/error if data is set?
         self.data = self._loader(file_path)
 
     def dump(self, file_path: str | PathLike) -> None:
+        """Write `self.data` to a new file."""
         if self._data is None:
             # TODO: clarify with custom exc
             raise Exception("No data!")
+
+        file_path = Path(file_path)
+        file_path.parent.mkdir(exist_ok=True, parents=True)
         self._dumper(self._data, file_path)

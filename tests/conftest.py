@@ -20,6 +20,18 @@ def jules_namelists(namelists_dir) -> JulesNamelists:
     return JulesNamelists.load(namelists_dir)
 
 @pytest.fixture
+def jules_input(jules_namelists) -> JulesInput:
+    """An instance of JulesInput from the test config."""
+    path = jules_namelists.file_paths[0]
+    return JulesInput(path)
+
+@pytest.fixture
+def jules_input_loaded(jules_input, config_dir) -> JulesInput:
+    """An instance of JulesInput with data loaded."""
+    jules_input.load(config_dir / jules_input.path)
+    return jules_input
+
+@pytest.fixture
 def jules_config(config_dir) -> JulesConfig:
     """An instance of JulesConfig with the test config loaded."""
     return JulesConfig.load(config_dir, nml_subdir="namelists")
