@@ -1,72 +1,136 @@
+import copy
+import fnmatch
 from os import PathLike
 from pathlib import Path
 from typing import Self
 
-from .config import JulesConfig, JulesConfigGenerator, read_config
-from .run import run_jules
+from jules_pytk.config import JulesConfig
+from jules_pytk.namelists import JulesNamelists, find_namelists
 
-GLOBAL_PREFIX = "expt"
-# NOTE: Unfortunately having a subdirectory for config means either
-# (a) abs path for output_dir, which breaks if directory is moved, or
-# (b) gymnastics with rel paths which breaks the simple `parallel jules.exe $paths`
-CONFIG_DIR = ""
+__all__ = [
+    "JulesExperiment",
+]
 
 
 class JulesExperiment:
-    """Python interface to a JULES experiment."""
+    """Python interface to a JULES experiment.
 
-    def __init__(self, path: str | PathLike):
-        path = Path(path).resolve()
-        self._path = path
-        self._config = read_config(self.config_path)
+    This is essentially a JulesConfig object combined with a concrete path
+    to an 'experiment directory'.
+    """
+
+    def __init__(
+        self,
+        experiment_dir: str | PathLike,
+        namelists_subdir: str | None = None,
+    ) -> None:
+        experiment_dir = Path(experiment_dir).resolve()
+
+        if namelists_subdir is None:
+            namelists_subdir = find_namelists(experiment_dir)
+
+        namelists = JulesNamelists.load(experiment_dir / namelists_subdir)
+
+        config = JulesConfig(namelists, namelists_subdir)
+
+        self._config = config
+        self._experiment_dir = experiment_dir
+
+    @classmethod
+    def new(cls, config: JulesConfig, experiment_dir: str | PathLike) -> Self:
+        # TODO: check that config has data loaded
+
+        experiment_dir = Path(experiment_dir).resolve()
+        experiment_dir.mkdir(parents=True, exist_ok=False)
+
+        namelists_dir = experiment_dir / config.namelists_subdir
+        namelists_dir.mkdir(parents=True, exist_ok=True)
+
+        config.namelists.write(namelists_dir)
+
+        for file_path in config.namelists.required_files:
+            if not file_path.is_absolute():
+                (experiment_dir / file_path).parent.mkdir(parents=True, exist_ok=True)
+                config.data[str(file_path)].write(experiment_dir / file_path)
+
+        (experiment_dir / config.namelists.output_dir).mkdir(
+            parents=True, exist_ok=False
+        )
+
+        return cls(experiment_dir, config.namelists_subdir)
+
+    def load_input_data(self, pattern: str = "*", exclude_abspath: bool = True) -> None:
+        """
+        All _relative_ paths in the namelists are loaded into memory to
+        make the configuration portable. _Absolute_ paths are not loaded,
+        since these paths would remain valid when the configuration is dumped
+        to a new location.
+        """
+        file_paths = [
+            str(file_path) for file_path in self.config.namelists.required_files
+        ]
+        file_paths = fnmatch.filter(file_paths, pattern)
+
+        for file_path in file_paths:
+            if Path(file_path).is_absolute() and not exclude_abspath:
+                self.config.data[file_path].read_(file_path)
+            else:
+                self.config.data[file_path].read_(self.experiment_dir / file_path)
 
     @property
-    def path(self) -> Path:
-        return self._path
+    def config(self) -> JulesConfig:
+        return self._config
 
     @property
-    def config_path(self) -> Path:
-        return self._path / CONFIG_DIR
+    def experiment_dir(self) -> Path:
+        return self._experiment_dir
 
     @property
-    def output_path(self) -> Path:
-        config_output_path = self._config.output.get("jules_output").get("output_dir")
+    def namelists_dir(self) -> Path:
+        return self.experiment_dir / self.config.namelists_subdir
 
-        # Assume it is a mistake if the output directory is absolute
-        # TODO: create a whole post-init validation for conformity to standard setup?
-        assert not Path(config_output_path).is_absolute()
+    @property
+    def output_dir(self) -> Path:
+        return self.experiment_dir / self.config.namelists.output_dir
 
-        return self._path / config_output_path
+    @property
+    def input_files(self) -> list[Path]:
+        return [
+            path if path.is_absolute() else self.experiment_dir / path
+            for path in self.config.namelists.required_files
+        ]
+
+    # ----------------------------------------------------------------------------
+
+    def clone(self, new_path: str | Path) -> Self:
+        # TODO: allow shallow copy?
+        return type(self)(config=copy.deepcopy(self.config), path=new_path)
 
     @property
     def has_run(self) -> bool:
         # TODO: figure out how to do this robustly
         raise NotImplementedError
 
-    @property
-    def config(self) -> JulesConfig:
-        # NOTE: potential problem that this is mutable!
-        return self._config
-
     def run(
-        self, jules_exe: str | PathLike | None = None, overwrite_existing: bool = False
+        self, jules_exe: str | PathLike | None = None, overwrite: bool = False
     ) -> None:
         # TODO: include has_run flag?
         run_jules(
             config_path=self.config_path,
             exec_path=self.path,
             jules_exe=jules_exe,
-            overwrite_existing=overwrite_existing,
+            overwrite=overwrite,
         )
 
 
 class JulesExperimentCollection:
-    def __init__(self, *paths: str | PathLike):
+    def __init__(self, *paths: str | PathLike, namelists_subdir: str | None = None):
         self._paths = list(paths)
+        self._namelists_subdir = namelists_subdir
         self._index = 0
 
     @classmethod
-    def from_path(cls, path: str | PathLike, prefix: str | None = None) -> Self:
+    def from_pattern(cls, root: str | PathLike, pattern: str = "*") -> Self:
         # TODO: use glob or regex to construct from base directory and optional prefix
         raise NotImplementedError
 
@@ -78,31 +142,12 @@ class JulesExperimentCollection:
         if self._index < len(self._paths):
             path = self._paths[self._index]
             self._index += 1
-            return JulesExperiment(path)
+            return JulesExperiment(path, self._namelists_subdir)
         else:
             raise StopIteration
 
 
-def create_experiment(path: str | PathLike, config: JulesConfig) -> JulesExperiment:
-    path = Path(path).resolve()
-    path.mkdir(exist_ok=False, parents=True)
-
-    config_path = path / CONFIG_DIR
-    config_path.mkdir(exist_ok=True)  # exist_ok=True required if config_path==path
-
-    config.write(config_path)
-
-    # NOTE: currently output_dir created on-demand
-    # config_output_dir = config.output.get("jules_output").get("output_dir")
-    # assert not Path(config_output_dir).is_absolute()
-    # output_path = path / config_output_dir
-    # output_path.mkdir(exist_ok=False, parents=True)
-
-    # TODO: Metadata?
-
-    return JulesExperiment(path)
-
-
+"""
 def create_experiment_collection(
     path: str | PathLike,
     configs: JulesConfigGenerator,
@@ -123,3 +168,4 @@ def create_experiment_collection(
         experiment_paths.append(experiment_path)
 
     return JulesExperimentCollection(*experiment_paths)
+"""

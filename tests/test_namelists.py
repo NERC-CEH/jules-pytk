@@ -4,37 +4,34 @@ from pathlib import Path
 import random
 import tempfile
 
-from jules_pytk.config.namelists import JulesNamelists
+from jules_pytk.namelists import JulesNamelists
 
 logger = logging.getLogger(__name__)
 
 
-def test_load(namelists_dir):
+def test_read(namelists_dir):
     """Test that namelists can be loaded."""
-    _ = JulesNamelists.load(namelists_dir)
+    _ = JulesNamelists.read(namelists_dir)
 
-def test_dump(jules_namelists):
-    """Test that JulesNamelists dumps all namelists."""
+
+def test_write(jules_namelists):
+    """Test that JulesNamelists writes all namelists."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
 
-        jules_namelists.dump(temp_dir)
+        jules_namelists.write(temp_dir)
 
         names = [field.name for field in dataclasses.fields(jules_namelists)]
 
-        assert all(
-            [
-                (temp_dir / name).with_suffix(".nml").exists()
-                for name in names
-            ]
-        )
+        assert all([(temp_dir / name).with_suffix(".nml").exists() for name in names])
+
 
 def test_round_trip(jules_namelists):
     """Test that JulesNamelists round-trips correctly."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        jules_namelists.dump(temp_dir)
+        jules_namelists.write(temp_dir)
 
-        reloaded_jules_namelists = JulesNamelists.load(temp_dir)
+        reloaded_jules_namelists = JulesNamelists.read(temp_dir)
 
     assert reloaded_jules_namelists == jules_namelists
 
@@ -56,5 +53,3 @@ def test_getitem(jules_namelists):
         param = jules_namelists[(a, b, c)]
 
     # TODO: test for sensible output when invalid a, b, c, or too many
-
-

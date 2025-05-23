@@ -1,20 +1,15 @@
 from dataclasses import dataclass, fields
-import logging
 from os import PathLike
 from pathlib import Path
-from typing import Any, final, Self
+from typing import Any, Self
 
 import f90nml
 
 from jules_pytk.exceptions import InvalidPath
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-__all__ = ["JulesNamelists"]
+__all__ = ["JulesNamelists", "find_namelists"]
 
 
-@final
 @dataclass(kw_only=True)
 class JulesNamelists:
     """Dataclass containing JULES namelists."""
@@ -50,23 +45,19 @@ class JulesNamelists:
     urban: f90nml.Namelist
 
     def __post_init__(self) -> None:
-        # Strongly discourage subclasses that introduce additional non-namelist
-        # fields, along with @final decorator
-        assert all([field.type == f90nml.Namelist for field in fields(self)])
-
         # Assert that all relative paths are to subdirectories, i.e. aren't
         # given by e.g. "../../file.nc"
-        for path in self.file_paths:
+        for file_path in self.required_files:
             if not (
-                path.expanduser().is_absolute()
-                or path.resolve().is_relative_to(Path.cwd())
+                file_path.expanduser().is_absolute()
+                or file_path.resolve().is_relative_to(Path.cwd())
+                # or Path.cwd() in file_path.resolve().parents
             ):
                 raise InvalidPath("Relative paths should not include '..'")
 
     @classmethod
-    def load(cls, namelists_dir: str | PathLike) -> Self:
+    def read(cls, namelists_dir: str | PathLike) -> Self:
         """Loads a JulesNamelists object from a directory containing namelist files."""
-
         namelists_dir = Path(namelists_dir).resolve()
 
         names = [field.name for field in fields(cls)]
@@ -78,19 +69,66 @@ class JulesNamelists:
 
         return cls(**namelists_dict)
 
-    def dump(self, namelists_dir: str | PathLike) -> None:
+    def write(self, namelists_dir: str | PathLike) -> None:
         """Writes namelist files to a directory.
 
         Raises FileExistsError if files already exist.
         """
-
         namelists_dir = Path(namelists_dir).resolve()
 
         names = [field.name for field in fields(self)]
 
         for name in names:
             file_path = (namelists_dir / name).with_suffix(".nml")
-            getattr(self, name).write(file_path, force=False)
+            getattr(self, name).write(
+                file_path, force=False
+            )  # do not override existing
+
+    @property
+    def parameters(self) -> dict[tuple[str, str, str], Any]:
+        """A flattened dict containing all parameters, indexed by 3-tuples."""
+        result = {}
+        for field in fields(self):
+            namelist = getattr(self, field.name)
+            for (group, param), value in namelist.groups():
+                result[(field.name, group, param)] = value
+        return result
+
+    @property
+    def file_parameters(self) -> dict[tuple[str, str, str], str]:
+        """A subset of `parameters` that point to input files."""
+        valid_extensions = (".nc", ".cdf", ".asc", ".txt", ".dat")
+        return {
+            key: value
+            for key, value in self.parameters.items()
+            if isinstance(value, str) and value.endswith(valid_extensions)
+        }
+
+    @property
+    def required_files(self) -> list[Path]:
+        """List of all unique file paths present in the namelists."""
+        return [Path(path) for path in set(self.file_parameters.values())]
+
+    @property
+    def output_dir(self) -> Path:
+        """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
+        return Path(getattr(self, "output").get("jules_output").get("output_dir"))
+
+    # ----------------------------------------------------------------------------------
+
+    def get(self, namelist: str, group: str | None = None, param: str | None = None):
+        if group is None and param is not None:
+            raise ValueError("Cannot provide `param` without also providing `group`")
+
+        res = getattr(self, namelist)
+
+        if group is not None:
+            res = res.get(group)
+
+        if param is not None:
+            res = res.get(param)
+
+        return res
 
     def __getitem__(
         self, key: str | tuple[str] | tuple[str, str] | tuple[str, str, str]
@@ -106,31 +144,24 @@ class JulesNamelists:
             return getattr(self, key[0]).get(key[1]).get(key[2])
 
     @property
-    def parameters(self) -> dict[tuple[str, str, str], Any]:
-        """A flattened dict containing all parameters, indexed by 3-tuples."""
-        result = {}
-        for field in fields(self):
-            namelist = getattr(self, field.name)
-            for (group, param), value in namelist.groups():
-                result[(field.name, group, param)] = value
-        return result
+    def filenames(self) -> list[str]:
+        return [f"{namelist}.nml" for namelist in fields(self)]
 
-    @property
-    def files(self) -> dict[tuple[str, str, str], str]:
-        """A subset of `parameters` that point to input files."""
-        valid_extensions = (".nc", ".cdf", ".asc", ".txt", ".dat")
-        return {
-            key: value
-            for key, value in self.parameters.items()
-            if isinstance(value, str) and value.endswith(valid_extensions)
-        }
 
-    @property
-    def file_paths(self) -> list[Path]:
-        """List of all unique file paths present in the namelists."""
-        return [Path(path) for path in set(self.files.values())]
+def find_namelists(root: Path) -> str:
+    # TODO: decide if symlinks allowed
+    candidates = [
+        path.parent.relative_to(root)
+        for path in root.rglob("ancillaries.nml", recurse_symlinks=False)
+        if all(
+            [(path.parent / nml_file).exists() for nml_file in JulesNamelists.files()]
+        )
+    ]
+    if len(candidates) == 0:
+        raise FileNotFoundError(f"Namelists not found under directory '{root}'")
+    elif len(candidates) > 1:
+        raise Exception(
+            f"Found more than one candidate namelists directory: {candidates}."
+        )
 
-    @property
-    def output_dir(self) -> Path:
-        """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
-        return Path(getattr(self, "output").get("jules_output").get("output_dir"))
+    return str(candidates[0])
