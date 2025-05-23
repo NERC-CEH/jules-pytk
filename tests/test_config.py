@@ -4,19 +4,21 @@ from pathlib import Path
 import random
 import tempfile
 
-from jules_pytk.config.config import JulesConfig
+from jules_pytk.config import JulesConfig
 
 logger = logging.getLogger(__name__)
 
 
-def test_config_load(config_dir):
+def test_config_load(experiment_dir):
     """Test that configurations can be read."""
-    _ = JulesConfig.load(config_dir, nml_subdir="namelists")
+    _ = JulesConfig.load(experiment_dir, nml_subdir="namelists")
+
 
 def test_config_dump(jules_config):
     """Test that configurations can be written."""
     with tempfile.TemporaryDirectory() as temp_dir:
         jules_config.dump(temp_dir, nml_subdir="namelists")
+
 
 def test_config_round_trip(jules_config):
     """Test that configurations round-trip correctly."""

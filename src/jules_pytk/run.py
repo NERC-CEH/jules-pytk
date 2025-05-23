@@ -19,7 +19,7 @@ def run_jules(
     config_path: str | PathLike,
     exec_path: str | PathLike,
     jules_exe: str | PathLike | None = None,
-    overwrite_existing: bool = False,
+    overwrite: bool = False,
 ) -> None:
     """Runs JULES.
 
@@ -35,7 +35,7 @@ def run_jules(
         Path to the directory in which JULES should be run.
     jules_exe:
         Path to a JULES executable, which defaults to `which jules.exe`.
-    overwrite_existing:
+    overwrite:
         If True, overwrites an existing output directory.
     """
 
@@ -54,7 +54,7 @@ def run_jules(
     output_path = Path(config.output.get("jules_output").get("output_dir"))
     if not output_path.is_absolute():
         output_path = exec_path / output_path
-    output_path.mkdir(exist_ok=overwrite_existing, parents=True)
+    output_path.mkdir(exist_ok=overwrite, parents=True)
 
     with switch_dir(exec_path, verbose=True):
 

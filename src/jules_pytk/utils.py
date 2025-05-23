@@ -32,3 +32,13 @@ class switch_dir:
         if self.verbose:
             logging.info("Switching directory back to %s" % self.old)
         os.chdir(self.old)
+
+
+class FrozenDict(dict):
+    """Restricted version of `dict` that prohibits new keys after instantiation."""
+
+    def __setitem__(self, key, value):
+        if key not in self:
+            allowed_keys = list(self.keys())
+            raise TypeError(f"New keys may not be added. Allowed keys: {allowed_keys}")
+        super().__setitem__(key, value)
