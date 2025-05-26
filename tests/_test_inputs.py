@@ -4,9 +4,10 @@ import tempfile
 import numpy
 import pytest
 
-from jules_pytk.inputs import JulesInput
+from jules_pytk.inputs import JulesInput, JulesInputAscii, JulesInputNetcdf
 
-@pytest.mark.parametrize("suffix", [".dat", ".txt", ".asc"])
+
+@pytest.mark.parametrize("suffix", JulesInputAscii.valid_extensions)
 def test_read_ascii(jules_input_ascii, suffix):
     assert jules_input_ascii.data is None
 

@@ -1,6 +1,7 @@
 import dataclasses
 import logging
 from pathlib import Path
+import pytest
 import random
 import tempfile
 
@@ -11,20 +12,29 @@ logger = logging.getLogger(__name__)
 
 def test_config_load(experiment_dir):
     """Test that configurations can be read."""
-    _ = JulesConfig.load(experiment_dir, nml_subdir="namelists")
+    _ = JulesConfig.from_experiment(experiment_dir)
 
 
-def test_config_dump(jules_config):
+def test_config_write(jules_config_loaded):
     """Test that configurations can be written."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        jules_config.dump(temp_dir, nml_subdir="namelists")
+        jules_config_loaded.write(temp_dir)
 
 
-def test_config_round_trip(jules_config):
+def test_config_round_trip(jules_config_loaded):
     """Test that configurations round-trip correctly."""
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        jules_config.dump(temp_dir, nml_subdir="namelists")
-        reloaded_jules_config = JulesConfig.load(temp_dir, nml_subdir="namelists")
+        jules_config_loaded.write(temp_dir)
+        reloaded_jules_config = JulesConfig.from_experiment(temp_dir)
 
-    assert reloaded_jules_config == jules_config
+    assert reloaded_jules_config == jules_config_loaded
+
+
+def test_config_write_nodata(jules_config):
+    """Test that writing with no data fails gracefully."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # TODO: Make this more specific to the particular ValueError
+        with pytest.raises(ValueError):
+            jules_config.write(temp_dir)
+

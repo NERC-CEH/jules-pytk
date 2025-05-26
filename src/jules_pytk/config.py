@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import logging
 from os import PathLike
 from pathlib import Path
 from typing import Generator, Self
@@ -9,6 +10,8 @@ from jules_pytk.namelists import JulesNamelists
 from jules_pytk.utils import FrozenDict
 
 __all__ = ["JulesConfig"]
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -44,6 +47,13 @@ class JulesConfig:
             }
         )
 
+    def __eq__(self, other) -> bool:
+        return (
+            (type(other) is type(self))
+            and (self.namelists == other.namelists)
+            and (self.data == other.data)
+        )
+
     def write(self, experiment_dir: str | PathLike) -> None:
         # TODO: Check valid config, e.g. has it loaded data?
 
@@ -51,11 +61,15 @@ class JulesConfig:
         namelists_dir = experiment_dir / self.namelists_subdir
 
         namelists_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Writing namelists to {namelists_dir}")
         self.namelists.write(namelists_dir)
 
-        for file_path in self.namelists.required_files:
-            if not file_path.is_absolute():
-                self.data[str(file_path)].write(experiment_dir / file_path)
+        for path_in_namelists in self.namelists.required_files:
+            if not path_in_namelists.is_absolute():
+                full_path = experiment_dir / path_in_namelists
+                logger.info(f"Writing data to {full_path}")
+                full_path.parent.mkdir(parents=True, exist_ok=True)
+                self.data[str(path_in_namelists)].write(full_path)
 
     # ---------------------------------------------------------------------------
 
@@ -65,8 +79,12 @@ class JulesConfig:
         from jules_pytk.experiment import JulesExperiment
 
         experiment = JulesExperiment(experiment_dir)
-        experiment.load_inputs()
-        return JulesExperiment.config
+        experiment.load_input_data()
+
+        # NOTE: do not use experiment.config, since this is a _property object_
+        # and among other things causes __eq__ to fail!
+        # TODO: Reconsider the whole rationale of making config a property.
+        return experiment._config
 
     def load_input_data(self, src: str | PathLike, dest: str = "infer") -> None:
         src = Path(src)
@@ -83,11 +101,6 @@ class JulesConfig:
         """Returns True if all file inputs given by relative paths have data loaded."""
         rel_paths = [str(path) for path in self.file_paths if not path.is_absolute()]
         return all([self.input[path] is not None for path in rel_paths])
-
-    def __eq__(self, other) -> bool:
-        if type(other) is not type(self):
-            return False
-        return self.namelists == other.namelists and self.inputs == other.inputs
 
     def validate(self) -> NotImplemented:
         # TODO: check that all files are accounted for etc
