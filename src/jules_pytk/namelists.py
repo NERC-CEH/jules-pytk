@@ -143,18 +143,17 @@ class JulesNamelists:
         elif len(key) == 3:
             return getattr(self, key[0]).get(key[1]).get(key[2])
 
-    @property
-    def filenames(self) -> list[str]:
-        return [f"{namelist}.nml" for namelist in fields(self)]
-
 
 def find_namelists(root: Path) -> str:
     # TODO: decide if symlinks allowed
     candidates = [
         path.parent.relative_to(root)
-        for path in root.rglob("ancillaries.nml", recurse_symlinks=False)
+        for path in root.rglob("ancillaries.nml")
         if all(
-            [(path.parent / nml_file).exists() for nml_file in JulesNamelists.files()]
+            [
+                (path.parent / field.name).with_suffix(".nml").exists()
+                for field in fields(JulesNamelists)
+            ]
         )
     ]
     if len(candidates) == 0:

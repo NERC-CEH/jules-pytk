@@ -1,10 +1,13 @@
 from dataclasses import dataclass, field
 import logging
 from os import PathLike
-from typing import Any
+from pathlib import Path
+from typing import Any, ClassVar
 
 import numpy
 import xarray
+
+from jules_pytk.exceptions import InvalidPath
 
 logging.getLogger(__name__)
 
@@ -24,17 +27,21 @@ class JulesInputAscii(_JulesInput):
     data: numpy.ndarray | None = None
     comment: str = ""
 
+    valid_extensions: ClassVar[list[str]] = [".asc", ".dat", ".txt"]
+
     @property
     def data(self) -> numpy.ndarray:
         return self._data
 
     @data.setter
     def data(self, new_data: numpy.ndarray) -> None:
+        logging.error(f"{hasattr(self, "_data")} --- {new_data}")
         # Do something different if self.data = None set in constructor...
         # Desperate hack to avoid self.data being initialised as
         # numpy.asarray(None) instead of None
         if not hasattr(self, "_data") and new_data is None:
             self._data = None
+            print("SETTING self._data = None !!!")
 
         else:
             self._data = numpy.asarray(new_data)
@@ -52,8 +59,19 @@ class JulesInputAscii(_JulesInput):
         self.data = numpy.loadtxt(file_path, comments=("#", "!"))
 
     def write(self, file_path: str | PathLike) -> None:
+        file_path = Path(file_path).resolve()
+
+        if file_path.suffix not in self.valid_extensions:
+            raise InvalidPath(
+                f"Path must have a file extension that is one of: {self.valid_extensions}"
+            )
+        if not file_path.parent.exists():
+            raise FileNotFoundError(
+                f"Parent directory '{file_path.parent}' does not exist."
+            )
+
         logging.info(f"Writing data to {file_path}")
-        numpy.savetxt(file_path, self.data, header=self.comment)
+        numpy.savetxt(str(file_path), self.data, header=self.comment)
 
     def __eq__(self, other: Any) -> bool:
         # NOTE: consider allclose; these are float arrays

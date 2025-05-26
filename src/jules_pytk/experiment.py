@@ -29,7 +29,7 @@ class JulesExperiment:
         if namelists_subdir is None:
             namelists_subdir = find_namelists(experiment_dir)
 
-        namelists = JulesNamelists.load(experiment_dir / namelists_subdir)
+        namelists = JulesNamelists.read(experiment_dir / namelists_subdir)
 
         config = JulesConfig(namelists, namelists_subdir)
 

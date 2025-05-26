@@ -26,7 +26,7 @@ def namelists_dir(experiment_dir, namelists_subdir) -> Path:
 @pytest.fixture
 def jules_namelists(namelists_dir) -> JulesNamelists:
     """An instance of JulesNamelists."""
-    return JulesNamelists.load(namelists_dir)
+    return JulesNamelists.read(namelists_dir)
 
 @pytest.fixture
 def jules_config(jules_namelists, namelists_subdir) -> JulesConfig:
