@@ -73,6 +73,10 @@ class JulesConfig:
 
     # ---------------------------------------------------------------------------
 
+    def detach_(self) -> None:
+        """Detach from a filesystem path; load all data etc."""
+        ...
+
     @staticmethod
     def from_experiment(experiment_dir: str | PathLike) -> Self:
         """Load a JulesConfig object from an existing experiment."""

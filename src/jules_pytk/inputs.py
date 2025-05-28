@@ -9,7 +9,7 @@ import xarray
 
 from jules_pytk.exceptions import InvalidPath
 
-logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 __all__ = ["JulesInput", "JulesInputAscii", "JulesInputNetcdf"]
 
@@ -35,26 +35,24 @@ class JulesInputAscii(_JulesInput):
 
     @data.setter
     def data(self, new_data: numpy.ndarray) -> None:
-        logging.error(f"{hasattr(self, "_data")} --- {new_data}")
         # Do something different if self.data = None set in constructor...
         # Desperate hack to avoid self.data being initialised as
         # numpy.asarray(None) instead of None
         if not hasattr(self, "_data") and new_data is None:
+            logger.info(f"Setting `data` attribute to `None`.")
             self._data = None
-            print("SETTING self._data = None !!!")
-
         else:
             self._data = numpy.asarray(new_data)
 
     def read_(self, file_path: str | PathLike) -> None:
-        logging.info(f"Reading data from {file_path}")
+        logger.info(f"Reading data from {file_path}")
 
         # TODO: extend to multi-line
         # Check if there is a single-line comment
         with open(file_path, "r") as file:
             first_line = file.readline().strip()
             if first_line[0] in ("#", "!"):  # Treated as comments by JULES
-                self.comment = first_line
+                self.comment = first_line[1:]
 
         self.data = numpy.loadtxt(file_path, comments=("#", "!"))
 
@@ -70,8 +68,15 @@ class JulesInputAscii(_JulesInput):
                 f"Parent directory '{file_path.parent}' does not exist."
             )
 
-        logging.info(f"Writing data to {file_path}")
-        numpy.savetxt(str(file_path), self.data, header=self.comment)
+        logger.info(f"Writing data to {file_path}")
+
+        numpy.savetxt(
+            str(file_path),
+            self.data.reshape(1, -1),
+            fmt="%.5f",
+            header=self.comment,
+            comments="#",
+        )
 
     def __eq__(self, other: Any) -> bool:
         # NOTE: consider allclose; these are float arrays
