@@ -1,12 +1,36 @@
 from pathlib import Path
 import tempfile
 
-from jules_pytk.config import JulesInput
+import numpy
+import pytest
 
-def test_load(jules_input, config_dir):
+from jules_pytk.inputs import JulesInput, JulesInputAscii, JulesInputNetcdf
+
+
+@pytest.mark.parametrize("suffix", JulesInputAscii.valid_extensions)
+def test_read_ascii(jules_input_ascii, suffix):
+    assert jules_input_ascii.data is None
+
+    file_contents = "\n".join(
+            ["# comment"] + ["1 2 3 4 5" for _ in range(10)]
+    )
+
+    with tempfile.TemporaryFile(suffix=suffix) as fp:
+        fp.write(file_contents)
+        jules_input_ascii.read_(fp.name)
+
+    data = jules_input_ascii.data
+    assert data is not None
+    print(data)
+    #assert isinstance(data, numpy.ndarray)
+    #assert len(data) == 10
+    #assert jules_input_ascii.comment == "# comment"
+
+def test_load(jules_input, experiment_dir):
     assert jules_input.data is None
-    jules_input.load(config_dir / jules_input.path)
+    jules_input.load(experiment_dir / jules_input.path)
     assert jules_input.data is not None
+
 
 def test_dump(jules_input_loaded):
     assert jules_input_loaded.data is not None
