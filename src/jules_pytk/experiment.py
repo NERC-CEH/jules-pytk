@@ -59,6 +59,11 @@ class JulesExperiment:
 
         return cls(experiment_dir, config.namelists_subdir)
 
+    @classmethod
+    def new_like(
+        cls, experiment_dir: str | PathLike, reference_experiment: str | PathLike
+    ) -> Self: ...
+
     def load_input_data(self, pattern: str = "*", exclude_abspath: bool = True) -> None:
         """
         All _relative_ paths in the namelists are loaded into memory to
@@ -102,7 +107,12 @@ class JulesExperiment:
 
     # ----------------------------------------------------------------------------
 
-    def clone(self, new_path: str | Path) -> Self:
+    @classmethod
+    def copy(cls, src: str | PathLike, dest: str | PathLike) -> None:
+        # copy all files without loading into memory?
+        ...
+
+    def clone(self, new_path: str | PathLike) -> Self:
         # TODO: allow shallow copy?
         return type(self)(config=copy.deepcopy(self.config), path=new_path)
 

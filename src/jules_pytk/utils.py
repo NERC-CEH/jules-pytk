@@ -2,7 +2,7 @@ import logging
 import os
 import pathlib
 
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -24,13 +24,13 @@ class switch_dir:
 
     def __enter__(self):
         if self.verbose:
-            logging.info("Switching directory to %s" % self.new)
+            logger.info("Switching directory to %s" % self.new)
         self.old = pathlib.Path.cwd()
         os.chdir(self.new)
 
     def __exit__(self, etype, value, traceback):
         if self.verbose:
-            logging.info("Switching directory back to %s" % self.old)
+            logger.info("Switching directory back to %s" % self.old)
         os.chdir(self.old)
 
 
