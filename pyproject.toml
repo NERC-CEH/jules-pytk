@@ -13,6 +13,7 @@ dependencies = [
     "netcdf4",
     "numpy",
     "pandas",
+    "udocker",
     "xarray",
 ]
 description = "A Python toolkit for working with JULES"
