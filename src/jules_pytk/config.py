@@ -75,7 +75,13 @@ class JulesConfig:
 
     def detach_(self) -> None:
         """Detach from a filesystem path; load all data etc."""
+        # 1. Load all data from relative paths
+        # 2. Set self.path = None
         ...
+
+    @property
+    def path(self) -> Path:
+        return self._path
 
     @staticmethod
     def from_experiment(experiment_dir: str | PathLike) -> Self:
@@ -109,6 +115,7 @@ class JulesConfig:
     def validate(self) -> NotImplemented:
         # TODO: check that all files are accounted for etc
         return NotImplemented
+
 
 
 type JulesConfigGenerator = Generator[JulesConfig, None, None]

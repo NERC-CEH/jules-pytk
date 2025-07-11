@@ -107,6 +107,10 @@ class JulesExperiment:
 
     # ----------------------------------------------------------------------------
 
+    def detach_config(self) -> JulesConfig:
+        """Returns a JulesConfig object with all data loaded."""
+        ...
+
     @classmethod
     def copy(cls, src: str | PathLike, dest: str | PathLike) -> None:
         # copy all files without loading into memory?

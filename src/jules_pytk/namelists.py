@@ -1,4 +1,4 @@
-from dataclasses import dataclass, fields
+from dataclasses import asdict, dataclass, fields, InitVar
 from os import PathLike
 from pathlib import Path
 from typing import Any, Self
@@ -44,7 +44,10 @@ class JulesNamelists:
     triffid_params: f90nml.Namelist
     urban: f90nml.Namelist
 
+    _path: ClassVar[Path | None] = None
+
     def __post_init__(self) -> None:
+        print("in post init (1)")
         # Assert that all relative paths are to subdirectories, i.e. aren't
         # given by e.g. "../../file.nc"
         for file_path in self.required_files:
@@ -55,21 +58,37 @@ class JulesNamelists:
             ):
                 raise InvalidPath("Relative paths should not include '..'")
 
+    @property
+    def path(self) -> Path:
+        return self._path
+
+    @property
+    def detached(self) -> bool:
+        return self.path is None
+    
     @classmethod
     def read(cls, namelists_dir: str | PathLike) -> Self:
         """Loads a JulesNamelists object from a directory containing namelist files."""
         namelists_dir = Path(namelists_dir).resolve()
 
-        names = [field.name for field in fields(cls)]
+        names = [field.name for field in fields(self)]
+        assert "namelists_dir" not in names
 
         namelists_dict = {
             name: f90nml.read((namelists_dir / name).with_suffix(".nml"))
             for name in names
         }
 
-        return cls(**namelists_dict)
+        inst = cls(**namelists_dict)
 
-    def write(self, namelists_dir: str | PathLike) -> None:
+        inst._path = namelists_dir
+
+        return inst
+
+    def detach(self) -> Self:
+        return type(self)(**asdict(self))
+    
+    def write(self, namelists_dir: str | PathLike) -> Self:
         """Writes namelist files to a directory.
 
         Raises FileExistsError if files already exist.
@@ -80,9 +99,28 @@ class JulesNamelists:
 
         for name in names:
             file_path = (namelists_dir / name).with_suffix(".nml")
+            # force=False so we do not override existing
             getattr(self, name).write(
                 file_path, force=False
-            )  # do not override existing
+            )
+
+        return type(self).read(namelists_dir)
+
+
+    def patch(self, namelist: str, patch: dict) -> None:
+        """Apply an **in-place** patch."""
+        
+        # Patch the namelists in-memory
+        getattr(self, namelist).patch(patch)
+
+        if self.is_detached:
+            return
+
+        # Write the new namelists to disk
+        getattr(self, namelist).write(
+            (self.path / namelist).with_suffix(".nml"),
+            force=True
+        )
 
     @property
     def parameters(self) -> dict[tuple[str, str, str], Any]:
@@ -114,8 +152,69 @@ class JulesNamelists:
         """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
         return Path(getattr(self, "output").get("jules_output").get("output_dir"))
 
-    # ----------------------------------------------------------------------------------
 
+
+@dataclass(init=False, kw_only=True)
+class JulesNamelists(DetachedJulesNamelists):
+    path: InitVar[str | PathLike]
+
+    def __init__(self, namelists_dir: str | PathLike) -> Self:
+        """Loads a JulesNamelists object from a directory containing namelist files."""
+        namelists_dir = Path(namelists_dir).resolve()
+
+        names = [field.name for field in fields(self)]
+        assert "namelists_dir" not in names
+
+        namelists_dict = {
+            name: f90nml.read((namelists_dir / name).with_suffix(".nml"))
+            for name in names
+        }
+
+        super().__init__(**namelists_dict)
+
+        self.path = namelists_dir
+
+
+    def patch_(self, namelist: str, patch: dict) -> None:
+        
+        # Patch the namelists in-memory
+        super().patch_(namelist, patch)
+
+        # Write the new namelists to disk
+        namelist = getattr(self, namelist)
+        getattr(self, namelist).write(
+            (self.path / namelist).with_suffix(".nml"),
+            force=True
+        )
+    
+    def detach(self) -> DetachedJulesNamelists:
+        return DetachedJulesNamelists(**asdict(self))
+
+
+
+def find_namelists(root: Path) -> str:
+    # TODO: decide if symlinks allowed
+    candidates = [
+        path.parent.relative_to(root)
+        for path in root.rglob("ancillaries.nml")
+        if all(
+            [
+                (path.parent / field.name).with_suffix(".nml").exists()
+                for field in fields(JulesNamelists)
+            ]
+        )
+    ]
+    if len(candidates) == 0:
+        raise FileNotFoundError(f"Namelists not found under directory '{root}'")
+    elif len(candidates) > 1:
+        raise Exception(
+            f"Found more than one candidate namelists directory: {candidates}."
+        )
+
+    return str(candidates[0])
+    
+
+'''
     def get(self, namelist: str, group: str | None = None, param: str | None = None):
         if group is None and param is not None:
             raise ValueError("Cannot provide `param` without also providing `group`")
@@ -142,25 +241,4 @@ class JulesNamelists:
             return getattr(self, key[0]).get(key[1])
         elif len(key) == 3:
             return getattr(self, key[0]).get(key[1]).get(key[2])
-
-
-def find_namelists(root: Path) -> str:
-    # TODO: decide if symlinks allowed
-    candidates = [
-        path.parent.relative_to(root)
-        for path in root.rglob("ancillaries.nml")
-        if all(
-            [
-                (path.parent / field.name).with_suffix(".nml").exists()
-                for field in fields(JulesNamelists)
-            ]
-        )
-    ]
-    if len(candidates) == 0:
-        raise FileNotFoundError(f"Namelists not found under directory '{root}'")
-    elif len(candidates) > 1:
-        raise Exception(
-            f"Found more than one candidate namelists directory: {candidates}."
-        )
-
-    return str(candidates[0])
+'''
