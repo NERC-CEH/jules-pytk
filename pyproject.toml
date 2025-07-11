@@ -3,7 +3,7 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jules-pytk"
+name = "jules_pytk"
 version = "0.2.0"
 authors = [
     {name = "Joe Marsh Rossney", email = "17361029+jmarshrossney@users.noreply.github.com"}
