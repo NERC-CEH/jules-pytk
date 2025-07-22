@@ -19,7 +19,7 @@ def test_write(jules_namelists):
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
 
-        jules_namelists.write(temp_dir)
+        _ = jules_namelists.write(temp_dir)
 
         names = [field.name for field in dataclasses.fields(jules_namelists)]
 
@@ -29,7 +29,7 @@ def test_write(jules_namelists):
 def test_round_trip(jules_namelists):
     """Test that JulesNamelists round-trips correctly."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        jules_namelists.write(temp_dir)
+        _ = jules_namelists.write(temp_dir)
 
         reloaded_jules_namelists = JulesNamelists.read(temp_dir)
 
@@ -53,3 +53,6 @@ def test_getitem(jules_namelists):
         param = jules_namelists[(a, b, c)]
 
     # TODO: test for sensible output when invalid a, b, c, or too many
+
+
+# TODO: test that patching causes correct update of namelists in memory
