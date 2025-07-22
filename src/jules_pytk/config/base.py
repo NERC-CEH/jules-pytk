@@ -53,6 +53,9 @@ class ConfigBase(ABC):
     @classmethod
     def read(cls, path: str | PathLike) -> Self:
         """Read an existing configuration from this location."""
+        path = Path(path)
+        if not path.exists():
+            raise FileNotFoundError(f"No file found at {path}")
         logger.info(f"Reading from {path}")
         inst = cls._read(path)
         inst._path = path
@@ -60,7 +63,7 @@ class ConfigBase(ABC):
 
     @classmethod
     @abstractmethod
-    def _read(cls, path: str | PathLike) -> Self: ...
+    def _read(cls, path: Path) -> Self: ...
 
     def write(self, path: str | PathLike, overwrite: bool = False) -> Self:
         """Write a configuration to a location in the filesystem.
@@ -72,12 +75,15 @@ class ConfigBase(ABC):
         Returns:
             A copy of `self` that is 'attached' to the path.
         """
+        path = Path(path).resolve()
+        if path.is_file() and not overwrite:
+            raise FileExistsError(f"There is already a file at {path}")
         logger.info(f"Writing to {path}")
         self._write(path, overwrite)
         return type(self).read(path)
 
     @abstractmethod
-    def _write(self, path: str | PathLike, overwrite: bool) -> None: ...
+    def _write(self, path: Path, overwrite: bool) -> None: ...
 
     def update(self, new_values: Any | None = None) -> None:
         """Update the configuration in-place."""

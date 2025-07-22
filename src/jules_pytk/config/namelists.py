@@ -1,6 +1,5 @@
 from dataclasses import dataclass, fields
 import logging
-from os import PathLike
 from pathlib import Path
 from typing import Any, Self
 
@@ -60,9 +59,9 @@ class JulesNamelists(ConfigBase):
                 raise InvalidPath("Relative paths should not include '..'")
 
     @classmethod
-    def _read(cls, path: str | PathLike) -> Self:
+    def _read(cls, path: Path) -> Self:
         """Loads a JulesNamelists object from a directory containing namelist files."""
-        namelists_dir = Path(path).resolve()
+        namelists_dir = path
 
         names = [field.name for field in fields(cls)]
 
@@ -73,7 +72,7 @@ class JulesNamelists(ConfigBase):
 
         return cls(**namelists_dict)
 
-    def _write(self, path: str | PathLike, overwrite: bool) -> None:
+    def _write(self, path: Path, overwrite: bool) -> None:
         """Writes namelist files to a directory.
 
         Parameters:
@@ -86,7 +85,7 @@ class JulesNamelists(ConfigBase):
         Raises:
             FileExistsError if overwrite=False and files already exist.
         """
-        namelists_dir = Path(path).resolve()
+        namelists_dir = path
 
         names = [field.name for field in fields(self)]
 

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import logging
-from os import PathLike
 from pathlib import Path
 from typing import Any, ClassVar, Self
 
@@ -34,36 +33,30 @@ class JulesInputAscii(ConfigBase):
         )
 
     @classmethod
-    def _read(cls, path: str | PathLike) -> Self:
-        file_path = path
-
+    def _read(cls, path: Path) -> Self:
         # Check if there is a single-line comment
         # TODO: extend to multi-line
-        with open(file_path, "r") as file:
+        with path.open("r") as file:
             first_line = file.readline().strip()
             if first_line[0] in ("#", "!"):  # Treated as comments by JULES
                 comment = first_line[1:]
             else:
                 comment = ""
 
-        data = numpy.loadtxt(file_path, comments=("#", "!"))
+        data = numpy.loadtxt(str(path), comments=("#", "!"))
+        data = data.squeeze()
 
         return cls(data=data, comment=comment)
 
-    def _write(self, path: str | PathLike) -> None:
-        file_path = Path(path).resolve()
-
-        if file_path.suffix not in self.valid_extensions:
+    def _write(self, path: Path, overwrite: bool) -> None:
+        if path.suffix not in self.valid_extensions:
             raise InvalidPath(
                 f"Path must have a file extension that is one of: {self.valid_extensions}"
             )
-        if not file_path.parent.exists():
-            raise FileNotFoundError(
-                f"Parent directory '{file_path.parent}' does not exist."
-            )
-
+        if not path.parent.exists():
+            raise FileNotFoundError(f"Parent directory '{path.parent}' does not exist.")
         numpy.savetxt(
-            str(file_path),
+            str(path),
             self.data.reshape(1, -1),
             fmt="%.5f",
             header=self.comment,
@@ -80,32 +73,38 @@ class JulesInputAscii(ConfigBase):
 
 @dataclass(kw_only=True)
 class JulesInputNetcdf(ConfigBase):
-    data: xarray.Dataset | None = None
-
-    @property
-    def data(self) -> xarray.Dataset:
-        return self._data
-
-    @data.setter
-    def data(self, new_data: xarray.Dataset) -> None:
-        if not hasattr(self, "_data") and new_data is None:
-            self._data = None
-        elif not isinstance(new_data, xarray.Dataset):
-            raise TypeError(f"Expected xarray.Dataset, but got {type(new_data)}")
-        else:
-            self._data = new_data
-
-    def read_(self, file_path: str | PathLike) -> None:
-        # NOTE: loads entire dataset into memory. Bad idea for big files
-        # TODO: lazy
-        self.data = xarray.load_dataset(file_path)
-
-    def write(self, file_path: str | PathLike) -> None:
-        self.data.to_netcdf(file_path)
+    data: xarray.Dataset
 
     def __eq__(self, other: Any) -> bool:
         # NOTE: consider allclose; these are float arrays
-        return super().__eq__(other) and self.data.identical(other.data)
+        return (
+            (type(other) is type(self))
+            and (type(other.data) is type(self.data))
+            and self.data.identical(other.data)
+        )
+
+    def _read(cls, path: Path) -> Self:
+        # Lazily load data.
+        # NOTE: This might be an issue if the file is kept open..?
+        data = xarray.open_dataset(path)
+
+        # This would load the full dataset
+        # self.data = xarray.load_dataset(path)
+
+        return cls(data=data)
+
+    def _write(self, path: Path, overwrite: bool) -> None:
+        self.data.to_netcdf(path)
+
+    def _update(self, new_values: xarray.Dataset) -> None:
+        # TODO: validation
+        assert isinstance(new_values, xarray.Dataset)
+        self.data = self.new_values
+
+    def on_detach(self) -> None:
+        # NOTE: loads entire dataset into memory. Bad idea for big files
+        logger.warning("Loading full dataset from {self.path}")
+        self.data.load()
 
 
 def JulesInput(file_ext: str, data: Any = None) -> JulesInputAscii | JulesInputNetcdf:
@@ -117,35 +116,3 @@ def JulesInput(file_ext: str, data: Any = None) -> JulesInputAscii | JulesInputN
             return JulesInputNetcdf(data=data)
         case _:
             raise ValueError(f"Invalid file extension: {file_ext}")
-
-
-# ---------------------------------------------------------
-
-
-'''
-def validate(self, namelists: JulesNamelists) -> NotImplemented:
-    # TODO: should this be called in data setter?
-    # NOTE: the idea is to subclass JulesInput and create
-    # validators specific to each type of input file, e.g.
-    # for driving data etc. This seems like a very big task though.
-    return NotImplemented
-
-
-def load(self, file_path: str | PathLike) -> None:
-    """Populate `self.data` with contents of an existing ascii or netcdf file."""
-    # TODO: warn if provided file path does not match self.file_path
-    # TODO: handle absolute
-    # TODO: warn/error if data is set?
-    self.data = self._loader(file_path)
-
-
-def dump(self, file_path: str | PathLike) -> None:
-    """Write `self.data` to a new file."""
-    if self._data is None:
-        # TODO: clarify with custom exc
-        raise Exception("No data!")
-
-    file_path = Path(file_path)
-    file_path.parent.mkdir(exist_ok=True, parents=True)
-    self._dumper(self._data, file_path)
-'''

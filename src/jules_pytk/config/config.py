@@ -44,8 +44,8 @@ class JulesConfig:
         # TODO: If namelists object is attached to a concrete directory, we can
         # infer `config_path` from `namelists.path` and `namelists_subdir`.
         # We would also need to infer data paths.
-        if not self.namelists.is_detached():
-            raise NotImplementedError
+        if not self.namelists.is_detached:
+            logger.warning("Attached namelists not yet implemented.")
 
         # Populate self.data dict with correct keys, i.e. required file paths
         self.data = FrozenDict(
