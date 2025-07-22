@@ -4,7 +4,7 @@ from pathlib import Path
 import random
 import tempfile
 
-from jules_pytk.namelists import JulesNamelists
+from jules_pytk.config import JulesNamelists
 
 logger = logging.getLogger(__name__)
 

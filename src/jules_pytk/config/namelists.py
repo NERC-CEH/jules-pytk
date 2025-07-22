@@ -7,6 +7,7 @@ from typing import Any, ClassVar, Self
 import f90nml
 
 from jules_pytk.exceptions import InvalidPath
+from .base import ConfigBase
 
 __all__ = ["JulesNamelists", "find_namelists"]
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
-class JulesNamelists:
+class JulesNamelists(ConfigBase):
     """Dataclass containing JULES namelists."""
 
     ancillaries: f90nml.Namelist
@@ -47,8 +48,6 @@ class JulesNamelists:
     triffid_params: f90nml.Namelist
     urban: f90nml.Namelist
 
-    _path: ClassVar[Path | None] = None
-
     def __post_init__(self) -> None:
         # Assert that all relative paths are to subdirectories, i.e. aren't
         # given by e.g. "../../file.nc"
@@ -59,43 +58,11 @@ class JulesNamelists:
                 # or Path.cwd() in file_path.resolve().parents
             ):
                 raise InvalidPath("Relative paths should not include '..'")
-
-    @property
-    def path(self) -> Path | None:
-        """Path to the namelists directory, or `None` if detached."""
-        return self._path
-
-    @property
-    def is_detached(self) -> bool:
-        """Returns `True` if this object is detached, and `False` otherwise.
-
-        See `JulesNamelists.detach` for an explanation of the term 'detached'.
-        """
-        return self.path is None
-    
-    def detach(self) -> Self:
-        """Returns a detached but otherwise identical instance of `JulesNamelists`.
-
-        Here, 'detached' means that the object is not associated with real
-        set of namelist files living on the disk. I.e. it can be safely modified.
-
-        The opposite of detached implies that the object is tracking a real
-        set of namelist files in the directory `self.path`. Any changes to
-        the namelists in-memory will trigger an update to these concrete
-        `.nml` files.
-        """
-        if self.is_detached:
-            logger.warning("Calling `detach()` on an instance of `JulesNamelists` that is already detached. Was this intentional?")
-        return type(self)(**asdict(self))
     
     @classmethod
-    def read(cls, namelists_dir: str | PathLike) -> Self:
-        """Loads a JulesNamelists object from a directory containing namelist files.
-
-        Note that the resulting JulesNamelists object will be synchronised with
-        these namelist files, unless `detach()` is called.
-        """
-        namelists_dir = Path(namelists_dir).resolve()
+    def _read(cls, path: str | PathLike) -> Self:
+        """Loads a JulesNamelists object from a directory containing namelist files."""
+        namelists_dir = Path(path).resolve()
 
         names = [field.name for field in fields(cls)]
 
@@ -104,17 +71,13 @@ class JulesNamelists:
             for name in names
         }
 
-        inst = cls(**namelists_dict)
+        return cls(**namelists_dict)
 
-        inst._path = namelists_dir
-
-        return inst
-
-    def write(self, namelists_dir: str | PathLike, overwrite: bool = False) -> Self:
+    def _write(self, path: str | PathLike, overwrite: bool) -> None:
         """Writes namelist files to a directory.
 
         Parameters:
-            namelists_dir: A path to an *existing* directory.
+            path: A path to an *existing* directory.
             overwrite: Whether to overwrite existing namelist files.
 
         Returns:
@@ -123,7 +86,7 @@ class JulesNamelists:
         Raises:
             FileExistsError if overwrite=False and files already exist.
         """
-        namelists_dir = Path(namelists_dir).resolve()
+        namelists_dir = Path(path).resolve()
 
         names = [field.name for field in fields(self)]
 
@@ -133,24 +96,18 @@ class JulesNamelists:
                 file_path, force=overwrite
             )
 
-        return type(self).read(namelists_dir)
-
-
-    def patch(self, namelist: str, patch: dict) -> None:
+    def _update(self, new_values: dict[str, dict]) -> None:
         """Apply an **in-place** patch."""
         
-        # Patch the namelists in-memory
-        getattr(self, namelist).patch(patch)
-
-        if self.is_detached:
-            return
+        for namelist, patch in new_values.items():
+            # Patch the namelists in-memory
+            getattr(self, namelist).patch(patch)
 
         # Write the new namelists to disk
-        logger.info("Updating namelist '{namelist}.nml' on disk.")
-        getattr(self, namelist).write(
-            (self.path / namelist).with_suffix(".nml"),
-            force=True
-        )
+        #getattr(self, namelist).write(
+        #    (self.path / namelist).with_suffix(".nml"),
+        #    force=True
+        #)
 
     # --------------------- Less important stuff - in flux -----------------
 

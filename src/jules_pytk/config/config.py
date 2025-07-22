@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 import logging
 from os import PathLike
 from pathlib import Path
-from typing import Generator, Self
+from typing import ClassVar, Generator, Self
 
 from jules_pytk.exceptions import InvalidPath
-from jules_pytk.inputs import JulesInput
-from jules_pytk.namelists import JulesNamelists
 from jules_pytk.utils import FrozenDict
+from .inputs import JulesInput
+from .namelists import JulesNamelists
 
 __all__ = ["JulesConfig"]
 
@@ -29,6 +29,8 @@ class JulesConfig:
     namelists_subdir: str
     data: FrozenDict[str, JulesInput] = field(init=False)  # NOTE: wrong type ann
 
+    _path: ClassVar[Path | None] = None
+
     def __post_init__(self) -> None:
         # Assert that namelists path is either "." or a subdirectory
         namelists_subdir = Path(self.namelists_subdir)
@@ -38,6 +40,12 @@ class JulesConfig:
             )
         if not namelists_subdir.resolve().is_relative_to(Path.cwd()):
             raise InvalidPath("`namelists_subdir` should not include '..'")
+
+        # TODO: If namelists object is attached to a concrete directory, we can
+        # infer `config_path` from `namelists.path` and `namelists_subdir`.
+        # We would also need to infer data paths.
+        if not namelists.is_detached():
+            raise NotImplementedError
 
         # Populate self.data dict with correct keys, i.e. required file paths
         self.data = FrozenDict(
@@ -52,6 +60,29 @@ class JulesConfig:
             (type(other) is type(self))
             and (self.namelists == other.namelists)
             and (self.data == other.data)
+        )
+
+    @property
+    def path(self) -> Path | None:
+        """Path to a configuration directory, or `None` if detached."""
+        return self._path
+
+    @property
+    def is_detached(self) -> bool:
+        """Returns `True` if this object is detached, and `False` otherwise."""
+        result = self.path is None
+        assert result == self.namelists.is_detached
+        return result
+
+    def detach(self) -> Self:
+        """Returns a detached but otherwise identical instance of `JulesConfig`."""
+        if self.is_detached:
+            logger.warning("Calling `detach()` on an instance of `JulesConfig` that is already detached. Was this intentional?")
+
+        return type(self)(
+            namelists=self.namelists.detach(),
+            namelists_dir=self.namelists_dir,
+            data=... # TODO: load data?
         )
 
     def write(self, experiment_dir: str | PathLike) -> None:

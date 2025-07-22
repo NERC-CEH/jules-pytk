@@ -2,10 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from jules_pytk.namelists import JulesNamelists
-from jules_pytk.config import JulesConfig
+
+from jules_pytk.config import JulesConfig, JulesNamelists, JulesInputAscii, JulesInputNetcdf
 from jules_pytk.experiment import JulesExperiment
-from jules_pytk.inputs import JulesInputAscii, JulesInputNetcdf
 
 
 @pytest.fixture
