@@ -1,3 +1,3 @@
-from .config import *
-from .inputs import *
-from .namelists import *
+from .config import JulesConfig
+from .inputs import JulesAsciiInput, JulesNetcdfInput
+from .namelists import JulesNamelists

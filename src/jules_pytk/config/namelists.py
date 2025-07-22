@@ -1,8 +1,8 @@
-from dataclasses import asdict, dataclass, fields
+from dataclasses import dataclass, fields
 import logging
 from os import PathLike
 from pathlib import Path
-from typing import Any, ClassVar, Self
+from typing import Any, Self
 
 import f90nml
 
@@ -58,7 +58,7 @@ class JulesNamelists(ConfigBase):
                 # or Path.cwd() in file_path.resolve().parents
             ):
                 raise InvalidPath("Relative paths should not include '..'")
-    
+
     @classmethod
     def _read(cls, path: str | PathLike) -> Self:
         """Loads a JulesNamelists object from a directory containing namelist files."""
@@ -92,22 +92,20 @@ class JulesNamelists(ConfigBase):
 
         for name in names:
             file_path = (namelists_dir / name).with_suffix(".nml")
-            getattr(self, name).write(
-                file_path, force=overwrite
-            )
+            getattr(self, name).write(file_path, force=overwrite)
 
     def _update(self, new_values: dict[str, dict]) -> None:
         """Apply an **in-place** patch."""
-        
+
         for namelist, patch in new_values.items():
             # Patch the namelists in-memory
             getattr(self, namelist).patch(patch)
 
         # Write the new namelists to disk
-        #getattr(self, namelist).write(
+        # getattr(self, namelist).write(
         #    (self.path / namelist).with_suffix(".nml"),
         #    force=True
-        #)
+        # )
 
     # --------------------- Less important stuff - in flux -----------------
 
@@ -140,7 +138,7 @@ class JulesNamelists(ConfigBase):
     def output_dir(self) -> Path:
         """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
         return Path(getattr(self, "output").get("jules_output").get("output_dir"))
-    
+
     def get(self, namelist: str, group: str | None = None, param: str | None = None):
         if group is None and param is not None:
             raise ValueError("Cannot provide `param` without also providing `group`")
@@ -169,7 +167,6 @@ class JulesNamelists(ConfigBase):
             return getattr(self, key[0]).get(key[1]).get(key[2])
 
 
-
 def find_namelists(root: Path) -> str:
     # TODO: decide if symlinks allowed
     candidates = [
@@ -190,4 +187,3 @@ def find_namelists(root: Path) -> str:
         )
 
     return str(candidates[0])
-

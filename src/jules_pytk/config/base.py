@@ -1,17 +1,18 @@
-from abc import ABCMeta, abstractmethod
-from dataclasses import asdict, dataclass, fields
+from abc import ABC, abstractmethod
+from dataclasses import asdict, dataclass
 import logging
 from os import PathLike
 from pathlib import Path
 from typing import Any, ClassVar, Self
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(kw_only=True)
-class ConfigBase:
+class ConfigBase(ABC):
     """Base class for configuration dataclasses."""
 
     _path: ClassVar[Path | None] = None
-
 
     @property
     def path(self) -> Path | None:
@@ -36,10 +37,13 @@ class ConfigBase:
         a corresponding update to these files.
         """
         if self.is_detached:
-            logger.warning("Calling `detach()` on an object that is already detached. Was this intentional?")
+            logger.warning(
+                "Calling `detach()` on an object that is already detached. Was this intentional?"
+            )
 
         self.on_detach()
 
+        # NOTE: maybe replace with copy and set self._path = None
         return type(self)(**asdict(self))
 
     def on_detach(self) -> None:
@@ -49,15 +53,14 @@ class ConfigBase:
     @classmethod
     def read(cls, path: str | PathLike) -> Self:
         """Read an existing configuration from this location."""
+        logger.info(f"Reading from {path}")
         inst = cls._read(path)
         inst._path = path
         return inst
 
     @classmethod
     @abstractmethod
-    def _read(cls, path: str | PathLike) -> Self:
-        ...
-
+    def _read(cls, path: str | PathLike) -> Self: ...
 
     def write(self, path: str | PathLike, overwrite: bool = False) -> Self:
         """Write a configuration to a location in the filesystem.
@@ -69,22 +72,28 @@ class ConfigBase:
         Returns:
             A copy of `self` that is 'attached' to the path.
         """
+        logger.info(f"Writing to {path}")
         self._write(path, overwrite)
         return type(self).read(path)
 
     @abstractmethod
-    def _write(self, path: str | PathLike, overwrite: bool) -> None:
-        ...
+    def _write(self, path: str | PathLike, overwrite: bool) -> None: ...
 
-    def update(self, new_values: Any, **kwargs) -> None:
+    def update(self, new_values: Any | None = None) -> None:
         """Update the configuration in-place."""
-        self._update(new_values, **kwargs)
+        if new_values is None and self.is_detached:
+            logger.warning(
+                "Updating a detached object with no new values does nothing!"
+            )
+            return
 
-        if not self.is_detached():
-            logger.info("Updating configuration at {self.path}")
-            self.write(self.path, overwrite=True)
+        if new_values is not None:
+            logger.info("Updating the object")
+            self._update(new_values)
+
+        if not self.is_detached:
+            logger.info(f"Updating {self.path}")
+            self._write(self.path, overwrite=True)
 
     @abstractmethod
-    def _update(self, new_values: Any, **kwargs) -> None:
-        ...
-
+    def _update(self, new_values: Any) -> None: ...

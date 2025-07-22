@@ -1,13 +1,14 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import logging
 from os import PathLike
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self
 
 import numpy
 import xarray
 
 from jules_pytk.exceptions import InvalidPath
+from .base import ConfigBase
 
 logger = logging.getLogger(__name__)
 
@@ -15,49 +16,42 @@ __all__ = ["JulesInput", "JulesInputAscii", "JulesInputNetcdf"]
 
 
 @dataclass(kw_only=True)
-class _JulesInput:
-    _data: Any = field(init=False, repr=False)
-
-    def __eq__(self, other: Any) -> bool:
-        return (type(other) is type(self)) and (type(other.data) is type(self.data))
-
-
-@dataclass(kw_only=True)
-class JulesInputAscii(_JulesInput):
-    data: numpy.ndarray | None = None
+class JulesInputAscii(ConfigBase):
+    data: numpy.ndarray
     comment: str = ""
 
     valid_extensions: ClassVar[list[str]] = [".asc", ".dat", ".txt"]
 
-    @property
-    def data(self) -> numpy.ndarray:
-        return self._data
+    def __post_init__(self) -> None:
+        self.data = numpy.asarray(self.data)
 
-    @data.setter
-    def data(self, new_data: numpy.ndarray) -> None:
-        # Do something different if self.data = None set in constructor...
-        # Desperate hack to avoid self.data being initialised as
-        # numpy.asarray(None) instead of None
-        if not hasattr(self, "_data") and new_data is None:
-            logger.info(f"Setting `data` attribute to `None`.")
-            self._data = None
-        else:
-            self._data = numpy.asarray(new_data)
+    def __eq__(self, other: Any) -> bool:
+        # NOTE: consider allclose; these are float arrays
+        return (
+            (type(other) is type(self))
+            and (type(other.data) is type(self.data))
+            and numpy.array_equal(self.data, other.data)
+        )
 
-    def read_(self, file_path: str | PathLike) -> None:
-        logger.info(f"Reading data from {file_path}")
+    @classmethod
+    def _read(cls, path: str | PathLike) -> Self:
+        file_path = path
 
-        # TODO: extend to multi-line
         # Check if there is a single-line comment
+        # TODO: extend to multi-line
         with open(file_path, "r") as file:
             first_line = file.readline().strip()
             if first_line[0] in ("#", "!"):  # Treated as comments by JULES
-                self.comment = first_line[1:]
+                comment = first_line[1:]
+            else:
+                comment = ""
 
-        self.data = numpy.loadtxt(file_path, comments=("#", "!"))
+        data = numpy.loadtxt(file_path, comments=("#", "!"))
 
-    def write(self, file_path: str | PathLike) -> None:
-        file_path = Path(file_path).resolve()
+        return cls(data=data, comment=comment)
+
+    def _write(self, path: str | PathLike) -> None:
+        file_path = Path(path).resolve()
 
         if file_path.suffix not in self.valid_extensions:
             raise InvalidPath(
@@ -68,8 +62,6 @@ class JulesInputAscii(_JulesInput):
                 f"Parent directory '{file_path.parent}' does not exist."
             )
 
-        logger.info(f"Writing data to {file_path}")
-
         numpy.savetxt(
             str(file_path),
             self.data.reshape(1, -1),
@@ -78,13 +70,16 @@ class JulesInputAscii(_JulesInput):
             comments="#",
         )
 
-    def __eq__(self, other: Any) -> bool:
-        # NOTE: consider allclose; these are float arrays
-        return super().__eq__(other) and numpy.array_equal(self.data, other.data)
+    def _update(self, new_values: list[float] | numpy.ndarray) -> None:
+        new_data = numpy.asarray(new_values)
+        if new_data.shape != self.data.shape:
+            logger.warning("Data has changed shape.")
+
+        self.data = new_data
 
 
 @dataclass(kw_only=True)
-class JulesInputNetcdf(_JulesInput):
+class JulesInputNetcdf(ConfigBase):
     data: xarray.Dataset | None = None
 
     @property

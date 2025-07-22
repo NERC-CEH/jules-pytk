@@ -50,7 +50,7 @@ def test_getitem(jules_namelists):
     except IndexError:
         logger.info("Empty namelist: skipping test of (a, b, c) access")
     else:
-        param = jules_namelists[(a, b, c)]
+        _ = jules_namelists[(a, b, c)]
 
     # TODO: test for sensible output when invalid a, b, c, or too many
 

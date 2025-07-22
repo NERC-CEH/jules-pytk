@@ -44,7 +44,7 @@ class JulesConfig:
         # TODO: If namelists object is attached to a concrete directory, we can
         # infer `config_path` from `namelists.path` and `namelists_subdir`.
         # We would also need to infer data paths.
-        if not namelists.is_detached():
+        if not self.namelists.is_detached():
             raise NotImplementedError
 
         # Populate self.data dict with correct keys, i.e. required file paths
@@ -77,12 +77,14 @@ class JulesConfig:
     def detach(self) -> Self:
         """Returns a detached but otherwise identical instance of `JulesConfig`."""
         if self.is_detached:
-            logger.warning("Calling `detach()` on an instance of `JulesConfig` that is already detached. Was this intentional?")
+            logger.warning(
+                "Calling `detach()` on an instance of `JulesConfig` that is already detached. Was this intentional?"
+            )
 
         return type(self)(
             namelists=self.namelists.detach(),
             namelists_dir=self.namelists_dir,
-            data=... # TODO: load data?
+            data=...,  # TODO: load data?
         )
 
     def write(self, experiment_dir: str | PathLike) -> None:
@@ -103,16 +105,6 @@ class JulesConfig:
                 self.data[str(path_in_namelists)].write(full_path)
 
     # ---------------------------------------------------------------------------
-
-    def detach_(self) -> None:
-        """Detach from a filesystem path; load all data etc."""
-        # 1. Load all data from relative paths
-        # 2. Set self.path = None
-        ...
-
-    @property
-    def path(self) -> Path:
-        return self._path
 
     @staticmethod
     def from_experiment(experiment_dir: str | PathLike) -> Self:
@@ -146,7 +138,6 @@ class JulesConfig:
     def validate(self) -> NotImplemented:
         # TODO: check that all files are accounted for etc
         return NotImplemented
-
 
 
 type JulesConfigGenerator = Generator[JulesConfig, None, None]
