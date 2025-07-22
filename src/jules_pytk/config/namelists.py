@@ -1,7 +1,7 @@
-from dataclasses import dataclass, fields
+from dataclasses import asdict, dataclass, fields
 import logging
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Generator, Self
 
 import f90nml
 
@@ -60,7 +60,6 @@ class JulesNamelists(ConfigBase):
 
     @classmethod
     def _read(cls, path: Path) -> Self:
-        """Loads a JulesNamelists object from a directory containing namelist files."""
         namelists_dir = path
 
         names = [field.name for field in fields(cls)]
@@ -73,18 +72,6 @@ class JulesNamelists(ConfigBase):
         return cls(**namelists_dict)
 
     def _write(self, path: Path, overwrite: bool) -> None:
-        """Writes namelist files to a directory.
-
-        Parameters:
-            path: A path to an *existing* directory.
-            overwrite: Whether to overwrite existing namelist files.
-
-        Returns:
-            A copy of `self` that is 'attached' to the namelists directory.
-
-        Raises:
-            FileExistsError if overwrite=False and files already exist.
-        """
         namelists_dir = path
 
         names = [field.name for field in fields(self)]
@@ -94,49 +81,14 @@ class JulesNamelists(ConfigBase):
             getattr(self, name).write(file_path, force=overwrite)
 
     def _update(self, new_values: dict[str, dict]) -> None:
-        """Apply an **in-place** patch."""
-
         for namelist, patch in new_values.items():
             # Patch the namelists in-memory
             getattr(self, namelist).patch(patch)
 
-        # Write the new namelists to disk
-        # getattr(self, namelist).write(
-        #    (self.path / namelist).with_suffix(".nml"),
-        #    force=True
-        # )
+    def _detach(self) -> Self:
+        return type(self)(**asdict(self))
 
-    # --------------------- Less important stuff - in flux -----------------
-
-    @property
-    def parameters(self) -> dict[tuple[str, str, str], Any]:
-        """A flattened dict containing all parameters, indexed by 3-tuples."""
-        result = {}
-        for field in fields(self):
-            namelist = getattr(self, field.name)
-            for (group, param), value in namelist.groups():
-                result[(field.name, group, param)] = value
-        return result
-
-    @property
-    def file_parameters(self) -> dict[tuple[str, str, str], str]:
-        """A subset of `parameters` that point to input files."""
-        valid_extensions = (".nc", ".cdf", ".asc", ".txt", ".dat")
-        return {
-            key: value
-            for key, value in self.parameters.items()
-            if isinstance(value, str) and value.endswith(valid_extensions)
-        }
-
-    @property
-    def required_files(self) -> list[Path]:
-        """List of all unique file paths present in the namelists."""
-        return [Path(path) for path in set(self.file_parameters.values())]
-
-    @property
-    def output_dir(self) -> Path:
-        """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
-        return Path(getattr(self, "output").get("jules_output").get("output_dir"))
+    # --------------------- Container access - experimental -----------------
 
     def get(self, namelist: str, group: str | None = None, param: str | None = None):
         if group is None and param is not None:
@@ -164,6 +116,40 @@ class JulesNamelists(ConfigBase):
             return getattr(self, key[0]).get(key[1])
         elif len(key) == 3:
             return getattr(self, key[0]).get(key[1]).get(key[2])
+
+    # -------------------- Properties - experimental -------------------
+
+    def parameters(self) -> Generator[tuple[tuple[str, str, str], Any], None, None]:
+        """Iterates over all parameters, labelled by 3-tuples.
+
+        Yields:
+            A 2-tuple containing (i) a 3-tuple (namelist, group, parameter)
+            which labels the parameter, and (ii) the value of the parameter itself.
+        """
+        for field in fields(self):
+            namelist = field.name
+            for (group, param), value in getattr(self, namelist).groups():
+                yield ((namelist, group, param), value)
+
+    def file_parameters(
+        self,
+    ) -> Generator[tuple[tuple[str, str, str], str], None, None]:
+        """A subset of parameters that point to input files."""
+        valid_extensions = (".nc", ".cdf", ".asc", ".txt", ".dat")
+        yield from filter(
+            lambda _, value: isinstance(value, str)
+            and value.endswith(valid_extensions),
+            self.parameters(),
+        )
+
+    def input_files(self) -> list[str]:
+        """List of all unique file paths present in the namelists."""
+        return set([path for _, path in self.file_parameters()])
+
+    @property
+    def output_dir(self) -> str:
+        """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
+        return getattr(self, "output").get("jules_output").get("output_dir")
 
 
 def find_namelists(root: Path) -> str:

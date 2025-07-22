@@ -51,7 +51,7 @@ class JulesConfig(ConfigBase):
         self.data = FrozenDict(
             {
                 str(file_path): JulesInput(file_path.suffix)
-                for file_path in self.namelists.required_files
+                for file_path in self.namelists.input_files()
             }
         )
 
@@ -68,13 +68,14 @@ class JulesConfig(ConfigBase):
 
         data = FrozenDict(
             {
-                str(file_path): JulesInput(file_path.suffix) if not file_path.is_absolute() else None
-                for file_path in self.namelists.required_files
+                str(file_path): JulesInput(file_path.suffix)
+                if not file_path.is_absolute()
+                else None
+                for file_path in self.namelists.input_files()
             }
         )
 
         return cls(namelists=namelists, namelists_subdir=namelists_subdir, data=data)
-
 
     def _write(self, path: Path, overwrite: bool) -> None:
         namelists_dir = path / self.namelists_subdir
@@ -89,10 +90,26 @@ class JulesConfig(ConfigBase):
                 full_path.parent.mkdir(parents=True, exist_ok=True)
                 self.data[str(path_in_namelists)].write(full_path, overwrite=overwrite)
 
-    def _update(self, new_values):
+    def _update(self, new_values) -> None:
         raise NotImplementedError("Cannot update JulesConfig directly")
 
+    def _detach(self) -> Self:
+        return type(self)(
+            namelists=self.namelists.detach(),
+            namelists_dir=self.namelists_dir,
+            data=FrozenDict(
+                {file_path: input.detach() for file_path, input in self.data.items()}
+            ),
+        )
+
     # ---------------------------------------------------------------------------
+
+    @property
+    def output_dir(self) -> Path:
+        if self.detached:
+            return Path(self.namelists.output_dir)
+        else:
+            return self.path / self.namelists.output_dir
 
     @staticmethod
     def from_experiment(experiment_dir: str | PathLike) -> Self:
@@ -112,7 +129,6 @@ class JulesConfig(ConfigBase):
 
         if dest == "infer":
             dest = src
-
 
 
 type JulesConfigGenerator = Generator[JulesConfig, None, None]

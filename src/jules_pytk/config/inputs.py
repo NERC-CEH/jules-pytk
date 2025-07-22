@@ -70,6 +70,9 @@ class JulesInputAscii(ConfigBase):
 
         self.data = new_data
 
+    def _detach(self) -> Self:
+        return type(self)(data=self.data, comment=self.comment)
+
 
 @dataclass(kw_only=True)
 class JulesInputNetcdf(ConfigBase):
@@ -97,14 +100,17 @@ class JulesInputNetcdf(ConfigBase):
         self.data.to_netcdf(path)
 
     def _update(self, new_values: xarray.Dataset) -> None:
-        # TODO: validation
         assert isinstance(new_values, xarray.Dataset)
         self.data = self.new_values
 
-    def on_detach(self) -> None:
+    def _detach(self) -> Self:
+        # NOTE: is probably useless since self.data is the same object as inst.data
+        inst = type(self)(data=self.data)
+
         # NOTE: loads entire dataset into memory. Bad idea for big files
         logger.warning("Loading full dataset from {self.path}")
-        self.data.load()
+        inst.data.load()
+        return inst
 
 
 def JulesInput(file_ext: str, data: Any = None) -> JulesInputAscii | JulesInputNetcdf:
