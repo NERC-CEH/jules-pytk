@@ -142,14 +142,14 @@ class JulesNamelists(ConfigBase):
             self.parameters(),
         )
 
-    def input_files(self) -> list[str]:
+    def input_files(self) -> list[Path]:
         """List of all unique file paths present in the namelists."""
-        return set([path for _, path in self.file_parameters()])
+        return set([Path(path) for _, path in self.file_parameters()])
 
     @property
     def output_dir(self) -> str:
         """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
-        return getattr(self, "output").get("jules_output").get("output_dir")
+        return Path(getattr(self, "output").get("jules_output").get("output_dir"))
 
 
 def find_namelists(root: Path) -> str:
