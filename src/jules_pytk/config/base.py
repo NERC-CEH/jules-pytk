@@ -51,21 +51,21 @@ class ConfigBase(ABC):
         ...
 
     @classmethod
-    def read(cls, path: str | PathLike) -> Self:
+    def read(cls, path: str | PathLike, **kwargs) -> Self:
         """Read an existing configuration from this location."""
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"No file found at {path}")
         logger.info(f"Reading from {path}")
-        inst = cls._read(path)
+        inst = cls._read(path, **kwargs)
         inst._path = path
         return inst
 
     @classmethod
     @abstractmethod
-    def _read(cls, path: Path) -> Self: ...
+    def _read(cls, path: Path, **kwargs) -> Self: ...
 
-    def write(self, path: str | PathLike, overwrite: bool = False) -> Self:
+    def write(self, path: str | PathLike, overwrite: bool = False, **kwargs) -> Self:
         """Write a configuration to a location in the filesystem.
 
         Parameters:

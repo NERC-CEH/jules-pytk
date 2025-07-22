@@ -6,6 +6,8 @@ from typing import ClassVar, Generator, Self
 
 from jules_pytk.exceptions import InvalidPath
 from jules_pytk.utils import FrozenDict
+
+from .base import ConfigBase
 from .inputs import JulesInput
 from .namelists import JulesNamelists
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class JulesConfig:
+class JulesConfig(ConfigBase):
     """
     Dataclass representing a JULES configuration.
 
@@ -27,9 +29,7 @@ class JulesConfig:
 
     namelists: JulesNamelists
     namelists_subdir: str
-    data: FrozenDict[str, JulesInput] = field(init=False)  # NOTE: wrong type ann
-
-    _path: ClassVar[Path | None] = None
+    data: FrozenDict[str, JulesInput] = field(init=False)
 
     def __post_init__(self) -> None:
         # Assert that namelists path is either "." or a subdirectory
@@ -62,47 +62,35 @@ class JulesConfig:
             and (self.data == other.data)
         )
 
-    @property
-    def path(self) -> Path | None:
-        """Path to a configuration directory, or `None` if detached."""
-        return self._path
+    def _read(cls, path: Path, namelists_subdir: str) -> Self:
+        namelists_dir = path / namelists_subdir
+        namelists = JulesNamelists.read(namelists_dir)
 
-    @property
-    def is_detached(self) -> bool:
-        """Returns `True` if this object is detached, and `False` otherwise."""
-        result = self.path is None
-        assert result == self.namelists.is_detached
-        return result
-
-    def detach(self) -> Self:
-        """Returns a detached but otherwise identical instance of `JulesConfig`."""
-        if self.is_detached:
-            logger.warning(
-                "Calling `detach()` on an instance of `JulesConfig` that is already detached. Was this intentional?"
-            )
-
-        return type(self)(
-            namelists=self.namelists.detach(),
-            namelists_dir=self.namelists_dir,
-            data=...,  # TODO: load data?
+        data = FrozenDict(
+            {
+                str(file_path): JulesInput(file_path.suffix) if not file_path.is_absolute() else None
+                for file_path in self.namelists.required_files
+            }
         )
 
-    def write(self, experiment_dir: str | PathLike) -> None:
-        # TODO: Check valid config, e.g. has it loaded data?
+        return cls(namelists=namelists, namelists_subdir=namelists_subdir, data=data)
 
-        experiment_dir = Path(experiment_dir).resolve()
-        namelists_dir = experiment_dir / self.namelists_subdir
+
+    def _write(self, path: Path, overwrite: bool) -> None:
+        namelists_dir = path / self.namelists_subdir
 
         namelists_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Writing namelists to {namelists_dir}")
-        self.namelists.write(namelists_dir)
+        self.namelists.write(namelists_dir, overwrite=overwrite)
 
         for path_in_namelists in self.namelists.required_files:
             if not path_in_namelists.is_absolute():
-                full_path = experiment_dir / path_in_namelists
-                logger.info(f"Writing data to {full_path}")
+                full_path = path / path_in_namelists
                 full_path.parent.mkdir(parents=True, exist_ok=True)
-                self.data[str(path_in_namelists)].write(full_path)
+                self.data[str(path_in_namelists)].write(full_path, overwrite=overwrite)
+
+    def _update(self, new_values):
+        raise NotImplementedError("Cannot update JulesConfig directly")
 
     # ---------------------------------------------------------------------------
 
@@ -125,19 +113,6 @@ class JulesConfig:
         if dest == "infer":
             dest = src
 
-    def dump(self) -> None:
-        """Dump config to dict/json"""
-        ...
-
-    @property
-    def is_portable(self) -> bool:
-        """Returns True if all file inputs given by relative paths have data loaded."""
-        rel_paths = [str(path) for path in self.file_paths if not path.is_absolute()]
-        return all([self.input[path] is not None for path in rel_paths])
-
-    def validate(self) -> NotImplemented:
-        # TODO: check that all files are accounted for etc
-        return NotImplemented
 
 
 type JulesConfigGenerator = Generator[JulesConfig, None, None]
