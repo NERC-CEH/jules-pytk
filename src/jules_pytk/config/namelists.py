@@ -128,25 +128,33 @@ class JulesNamelists(ConfigBase):
             for (group, param), value in getattr(self, namelist).groups():
                 yield (namelist, group, param), value
 
-    def file_parameters(
+    def _file_parameters(
         self,
     ) -> Generator[tuple[tuple[str, str, str], str], None, None]:
         """A subset of parameters that point to input files."""
         valid_extensions = (".nc", ".cdf", ".asc", ".txt", ".dat")
         yield from filter(
-            lambda label_value: isinstance(label_value[1], str)
-            and label_value[1].endswith(valid_extensions),
+            lambda label_value: (
+                isinstance(label_value[1], str)
+                and label_value[1].endswith(valid_extensions)
+            ),
             self.parameters(),
         )
 
-    def input_files(self) -> list[Path]:
+    def input_files(self, rel_only: bool = False) -> list[Path]:
         """List of all unique file paths present in the namelists."""
-        return set([Path(path) for _, path in self.file_parameters()])
+        unique_files = set([Path(path) for _, path in self._file_parameters()])
 
-    @property
-    def output_dir(self) -> str:
-        """Shortcut to JULES_OUTPUT::output_dir, for convenience"""
-        return Path(getattr(self, "output").get("jules_output").get("output_dir"))
+        if rel_only:
+            return [path for path in unique_files if not path.is_absolute()]
+        else:
+            return list(unique_files)
+
+        rel, abs = [], []
+        for path in unique_files:
+            (abs if path.is_absolute() else rel).append(path)
+
+        return rel, abs
 
 
 def find_namelists(root: Path) -> str:
@@ -164,8 +172,8 @@ def find_namelists(root: Path) -> str:
     if len(candidates) == 0:
         raise FileNotFoundError(f"Namelists not found under directory '{root}'")
     elif len(candidates) > 1:
-        raise Exception(
-            f"Found more than one candidate namelists directory: {candidates}."
+        logger.warning(
+            f"Found more than one candidate namelists directory: {candidates}. Returning the first one."
         )
 
     return str(candidates[0])

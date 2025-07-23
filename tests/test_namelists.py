@@ -42,7 +42,7 @@ def test_parameters(jules_namelists):
 
 
 def test_file_parameters(jules_namelists):
-    for (namelist, group, param), value in jules_namelists.file_parameters():
+    for (namelist, group, param), value in jules_namelists._file_parameters():
         pass
 
 

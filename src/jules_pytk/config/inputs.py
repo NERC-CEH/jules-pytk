@@ -29,7 +29,6 @@ class JulesInputAscii(ConfigBase):
             self.data = self.data.reshape(1, -1)
 
     def __eq__(self, other: Any) -> bool:
-        # NOTE: consider allclose; these are float arrays
         return (
             (type(other) is type(self))
             and (type(other.data) is type(self.data))
