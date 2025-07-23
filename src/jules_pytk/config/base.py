@@ -91,7 +91,7 @@ class ConfigBase(ABC):
             logger.warning(
                 "Calling `detach()` on an object that is already detached. Was this intentional?"
             )
-        return self._detach(self)
+        return self._detach()
 
     @abstractmethod
     def _detach(self) -> Self: ...

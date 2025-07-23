@@ -96,8 +96,8 @@ class JulesConfig(ConfigBase):
     def _detach(self) -> Self:
         return type(self)(
             namelists=self.namelists.detach(),
-            namelists_dir=self.namelists_dir,
-            data=FrozenDict(
+            namelists_subdir=self.namelists_subdir,
+            inputs=FrozenDict(
                 {file_path: input.detach() for file_path, input in self.inputs.items()}
             ),
         )
@@ -109,7 +109,7 @@ class JulesConfig(ConfigBase):
         for path in self.namelists.input_files():
             (abs_paths if path.is_absolute() else rel_paths).append(path)
 
-        if self.detached:
+        if self.is_detached:
             paths_to_check = abs_paths
             logger.warning(
                 "Detached configuration: Only checking for existence of absolute paths!"
@@ -155,7 +155,7 @@ class JulesConfig(ConfigBase):
 
     @property
     def namelists_dir(self) -> Path | None:
-        return None if self.detached else self.path / self.namelists_subdir
+        return None if self.is_detached else self.path / self.namelists_subdir
 
     @property
     def input_files(self) -> list[Path | None]:
@@ -173,7 +173,7 @@ class JulesConfig(ConfigBase):
         if path_in_namelists.is_absolute():
             return path_in_namelists
 
-        if not self.detached:
+        if not self.is_detached:
             return self.path / path_in_namelists
 
         logger.warning(
