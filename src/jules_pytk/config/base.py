@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass
 import logging
 from os import PathLike
 from pathlib import Path
@@ -8,7 +7,6 @@ from typing import Any, ClassVar, Self
 logger = logging.getLogger(__name__)
 
 
-@dataclass(kw_only=True)
 class ConfigBase(ABC):
     """Base class for configuration dataclasses."""
 

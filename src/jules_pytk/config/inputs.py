@@ -22,14 +22,18 @@ class JulesInputAscii(ConfigBase):
     valid_extensions: ClassVar[list[str]] = [".asc", ".dat", ".txt"]
 
     def __post_init__(self) -> None:
+        assert self.data is not None
         self.data = numpy.asarray(self.data)
+
+        if self.data.ndim == 1:
+            self.data = self.data.reshape(1, -1)
 
     def __eq__(self, other: Any) -> bool:
         # NOTE: consider allclose; these are float arrays
         return (
             (type(other) is type(self))
             and (type(other.data) is type(self.data))
-            and numpy.array_equal(self.data, other.data)
+            and numpy.allclose(self.data, other.data, atol=1e-4)
         )
 
     @classmethod
@@ -57,7 +61,7 @@ class JulesInputAscii(ConfigBase):
             raise FileNotFoundError(f"Parent directory '{path.parent}' does not exist.")
         numpy.savetxt(
             str(path),
-            self.data.reshape(1, -1),
+            self.data,
             fmt="%.5f",
             header=self.comment,
             comments="#",
@@ -113,12 +117,12 @@ class JulesInputNetcdf(ConfigBase):
         return inst
 
 
-def JulesInput(file_ext: str, data: Any = None) -> JulesInputAscii | JulesInputNetcdf:
+def JulesInput(file_ext: str) -> type[JulesInputAscii] | type[JulesInputNetcdf]:
     """Representation of a file input to JULES."""
     match file_ext:
         case ".asc" | ".txt" | ".dat":
-            return JulesInputAscii(data=data)
+            return JulesInputAscii
         case ".nc" | ".cdf":
-            return JulesInputNetcdf(data=data)
+            return JulesInputNetcdf
         case _:
             raise ValueError(f"Invalid file extension: {file_ext}")

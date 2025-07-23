@@ -36,6 +36,16 @@ def test_round_trip(jules_namelists):
     assert reloaded_jules_namelists == jules_namelists
 
 
+def test_parameters(jules_namelists):
+    for (namelist, group, param), value in jules_namelists.parameters():
+        pass
+
+
+def test_file_parameters(jules_namelists):
+    for (namelist, group, param), value in jules_namelists.file_parameters():
+        pass
+
+
 def test_getitem(jules_namelists):
     a = random.choice([field.name for field in dataclasses.fields(jules_namelists)])
 

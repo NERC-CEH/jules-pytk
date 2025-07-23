@@ -1,22 +1,21 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import logging
-from os import PathLike
 from pathlib import Path
-from typing import ClassVar, Generator, Self
+from typing import Generator, Self
 
 from jules_pytk.exceptions import InvalidPath
 from jules_pytk.utils import FrozenDict
 
 from .base import ConfigBase
 from .inputs import JulesInput
-from .namelists import JulesNamelists
+from .namelists import JulesNamelists, find_namelists
 
 __all__ = ["JulesConfig"]
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class JulesConfig(ConfigBase):
     """
     Dataclass representing a JULES configuration.
@@ -29,7 +28,7 @@ class JulesConfig(ConfigBase):
 
     namelists: JulesNamelists
     namelists_subdir: str
-    data: FrozenDict[str, JulesInput] = field(init=False)
+    inputs: FrozenDict[str, JulesInput]
 
     def __post_init__(self) -> None:
         # Assert that namelists path is either "." or a subdirectory
@@ -41,41 +40,42 @@ class JulesConfig(ConfigBase):
         if not namelists_subdir.resolve().is_relative_to(Path.cwd()):
             raise InvalidPath("`namelists_subdir` should not include '..'")
 
-        # TODO: If namelists object is attached to a concrete directory, we can
-        # infer `config_path` from `namelists.path` and `namelists_subdir`.
-        # We would also need to infer data paths.
-        if not self.namelists.is_detached:
-            logger.warning("Attached namelists not yet implemented.")
+        assert list(self.inputs.keys()) == [
+            str(path) for path in self.namelists.input_files()
+        ]
 
-        # Populate self.data dict with correct keys, i.e. required file paths
-        self.data = FrozenDict(
-            {
-                str(file_path): JulesInput(file_path.suffix)
-                for file_path in self.namelists.input_files()
-            }
-        )
+        if not self.namelists.is_detached:
+            # Check that namelists path ends with namelists_subdir
+            assert self.namelists.path.match(self.namelists_subdir)
 
     def __eq__(self, other) -> bool:
         return (
             (type(other) is type(self))
             and (self.namelists == other.namelists)
-            and (self.data == other.data)
+            and (self.namelists_subdir == other.namelists_subdir)
+            and (self.inputs == other.inputs)
         )
 
-    def _read(cls, path: Path, namelists_subdir: str) -> Self:
+    @classmethod
+    def _read(cls, path: Path, namelists_subdir: str | None = None) -> Self:
+        if namelists_subdir is None:
+            namelists_subdir = find_namelists(path)
+
         namelists_dir = path / namelists_subdir
         namelists = JulesNamelists.read(namelists_dir)
 
-        data = FrozenDict(
+        inputs = FrozenDict(
             {
-                str(file_path): JulesInput(file_path.suffix)
+                str(file_path): JulesInput(file_path.suffix).read(path / file_path)
                 if not file_path.is_absolute()
                 else None
-                for file_path in self.namelists.input_files()
+                for file_path in namelists.input_files()
             }
         )
 
-        return cls(namelists=namelists, namelists_subdir=namelists_subdir, data=data)
+        return cls(
+            namelists=namelists, namelists_subdir=namelists_subdir, inputs=inputs
+        )
 
     def _write(self, path: Path, overwrite: bool) -> None:
         namelists_dir = path / self.namelists_subdir
@@ -84,11 +84,13 @@ class JulesConfig(ConfigBase):
         logger.info(f"Writing namelists to {namelists_dir}")
         self.namelists.write(namelists_dir, overwrite=overwrite)
 
-        for path_in_namelists in self.namelists.required_files:
+        for path_in_namelists in self.namelists.input_files():
             if not path_in_namelists.is_absolute():
                 full_path = path / path_in_namelists
                 full_path.parent.mkdir(parents=True, exist_ok=True)
-                self.data[str(path_in_namelists)].write(full_path, overwrite=overwrite)
+                self.inputs[str(path_in_namelists)].write(
+                    full_path, overwrite=overwrite
+                )
 
     def _update(self, new_values) -> None:
         raise NotImplementedError("Cannot update JulesConfig directly")
@@ -98,37 +100,24 @@ class JulesConfig(ConfigBase):
             namelists=self.namelists.detach(),
             namelists_dir=self.namelists_dir,
             data=FrozenDict(
-                {file_path: input.detach() for file_path, input in self.data.items()}
+                {file_path: input.detach() for file_path, input in self.inputs.items()}
             ),
         )
 
-    # ---------------------------------------------------------------------------
+    @property
+    def namelists_dir(self) -> Path | None:
+        return None if self.detached else self.path / self.namelists_subdir
 
     @property
-    def output_dir(self) -> Path:
-        if self.detached:
-            return Path(self.namelists.output_dir)
-        else:
-            return self.path / self.namelists.output_dir
+    def input_files(self) -> list[Path | None]:
+        return [
+            path if path.is_absolute() else self.path / path
+            for path in self.namelists.input_files()
+        ]
 
-    @staticmethod
-    def from_experiment(experiment_dir: str | PathLike) -> Self:
-        """Load a JulesConfig object from an existing experiment."""
-        from jules_pytk.experiment import JulesExperiment
-
-        experiment = JulesExperiment(experiment_dir)
-        experiment.load_input_data()
-
-        # NOTE: do not use experiment.config, since this is a _property object_
-        # and among other things causes __eq__ to fail!
-        # TODO: Reconsider the whole rationale of making config a property.
-        return experiment._config
-
-    def load_input_data(self, src: str | PathLike, dest: str = "infer") -> None:
-        src = Path(src)
-
-        if dest == "infer":
-            dest = src
+    @property
+    def output_dir(self) -> Path | None:
+        return None if self.detached else self.path / self.namelists.output_dir
 
 
 type JulesConfigGenerator = Generator[JulesConfig, None, None]

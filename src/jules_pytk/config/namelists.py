@@ -47,10 +47,10 @@ class JulesNamelists(ConfigBase):
     triffid_params: f90nml.Namelist
     urban: f90nml.Namelist
 
-    def __post_init__(self) -> None:
+    def _post_init__(self) -> None:
         # Assert that all relative paths are to subdirectories, i.e. aren't
         # given by e.g. "../../file.nc"
-        for file_path in self.required_files:
+        for file_path in self.input_files():
             if not (
                 file_path.expanduser().is_absolute()
                 or file_path.resolve().is_relative_to(Path.cwd())
@@ -60,13 +60,10 @@ class JulesNamelists(ConfigBase):
 
     @classmethod
     def _read(cls, path: Path) -> Self:
-        namelists_dir = path
-
         names = [field.name for field in fields(cls)]
 
         namelists_dict = {
-            name: f90nml.read((namelists_dir / name).with_suffix(".nml"))
-            for name in names
+            name: f90nml.read((path / name).with_suffix(".nml")) for name in names
         }
 
         return cls(**namelists_dict)
@@ -129,7 +126,7 @@ class JulesNamelists(ConfigBase):
         for field in fields(self):
             namelist = field.name
             for (group, param), value in getattr(self, namelist).groups():
-                yield ((namelist, group, param), value)
+                yield (namelist, group, param), value
 
     def file_parameters(
         self,
@@ -137,8 +134,8 @@ class JulesNamelists(ConfigBase):
         """A subset of parameters that point to input files."""
         valid_extensions = (".nc", ".cdf", ".asc", ".txt", ".dat")
         yield from filter(
-            lambda _, value: isinstance(value, str)
-            and value.endswith(valid_extensions),
+            lambda label_value: isinstance(label_value[1], str)
+            and label_value[1].endswith(valid_extensions),
             self.parameters(),
         )
 
