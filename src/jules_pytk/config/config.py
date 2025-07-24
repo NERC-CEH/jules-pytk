@@ -182,4 +182,4 @@ class JulesConfig(ConfigBase):
         return None
 
 
-type JulesConfigGenerator = Generator[JulesConfig, None, None]
+#type JulesConfigGenerator = Generator[JulesConfig, None, None]
