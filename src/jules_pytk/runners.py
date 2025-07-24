@@ -99,11 +99,15 @@ class JulesExeRunner:
 
                 except subprocess.CalledProcessError as exc:
                     log.error(
-                        "An error was thrown by the subprocess. Reading details from %s."
+                        "An error was thrown by the subprocess. See details in %s."
                         % stderr_file
                     )
-                    errfile_contents = errfile.read()
-                    raise JulesRuntimeError(errfile_contents) from exc
+
+                    # TODO: fix this - errfile is not readable.
+                    #errfile_contents = errfile.read()
+                    #raise JulesRuntimeError(errfile_contents) from exc
+
+                    raise JulesRuntimeError("An error was thrown by the subprocess. See details in stderr.log") from exc
 
 
 class JulesUdockerRunner:
