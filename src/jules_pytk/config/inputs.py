@@ -89,6 +89,7 @@ class JulesInputNetcdf(ConfigBase):
             and self.data.identical(other.data)
         )
 
+    @classmethod
     def _read(cls, path: Path) -> Self:
         # Lazily load data.
         # NOTE: This might be an issue if the file is kept open..?

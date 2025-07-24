@@ -88,7 +88,16 @@ class JulesConfig(ConfigBase):
         for path_in_namelists in self.namelists.input_files(rel_only=True):
             full_path = path / path_in_namelists
             full_path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Writing input file to {full_path}")
             self.inputs[str(path_in_namelists)].write(full_path, overwrite=overwrite)
+
+        output_dir = Path(self.namelists[("output", "jules_output", "output_dir")])
+        if output_dir.is_absolute():
+            logger.warning("Refusing to create output directory with absolute path.")
+        else:
+            output_dir = path / output_dir
+            logger.info(f"Creating output directory at {output_dir}")
+            output_dir.mkdir(parents=True, exist_ok=True)
 
     def _update(self, new_values) -> None:
         raise NotImplementedError("Cannot update JulesConfig directly")
