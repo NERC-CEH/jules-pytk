@@ -107,12 +107,16 @@ class JulesNamelists(ConfigBase):
         """Access the namelists/groups/parameters with 1-/2-/3-tuple keys."""
         if isinstance(key, str):
             key = (key,)
-        if len(key) == 1:
-            return getattr(self, key[0])
-        elif len(key) == 2:
-            return getattr(self, key[0]).get(key[1])
-        elif len(key) == 3:
-            return getattr(self, key[0]).get(key[1]).get(key[2])
+
+        match len(key):
+            case 1:
+                return getattr(self, key[0])
+            case 2:
+                return getattr(self, key[0]).get(key[1])
+            case 3:
+                return getattr(self, key[0]).get(key[1]).get(key[2])
+            case _:
+                raise ValueError(f"`key` must have 1, 2, or 3 elements (got {len(key)}).")
 
     # -------------------- Properties - experimental -------------------
 
