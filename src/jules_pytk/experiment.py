@@ -4,8 +4,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Self
 
-from jules_pytk.config import JulesConfig
-from jules_pytk.namelists import JulesNamelists, find_namelists
+from jules_pytk.config import JulesConfig, JulesNamelists, find_namelists
 
 __all__ = [
     "JulesExperiment",
@@ -106,6 +105,10 @@ class JulesExperiment:
         ]
 
     # ----------------------------------------------------------------------------
+
+    def detach_config(self) -> JulesConfig:
+        """Returns a JulesConfig object with all data loaded."""
+        ...
 
     @classmethod
     def copy(cls, src: str | PathLike, dest: str | PathLike) -> None:

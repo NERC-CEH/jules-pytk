@@ -1,7 +1,9 @@
 .venv/
-.python-version
 
 __pycache__/
 *.egg-info
+build/
 
+*.ipynb
+*.ipynb_checkpoints
 workbench/

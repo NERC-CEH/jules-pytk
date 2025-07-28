@@ -4,7 +4,7 @@ from pathlib import Path
 import random
 import tempfile
 
-from jules_pytk.namelists import JulesNamelists
+from jules_pytk.config import JulesNamelists
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def test_write(jules_namelists):
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
 
-        jules_namelists.write(temp_dir)
+        _ = jules_namelists.write(temp_dir)
 
         names = [field.name for field in dataclasses.fields(jules_namelists)]
 
@@ -29,11 +29,21 @@ def test_write(jules_namelists):
 def test_round_trip(jules_namelists):
     """Test that JulesNamelists round-trips correctly."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        jules_namelists.write(temp_dir)
+        _ = jules_namelists.write(temp_dir)
 
         reloaded_jules_namelists = JulesNamelists.read(temp_dir)
 
     assert reloaded_jules_namelists == jules_namelists
+
+
+def test_parameters(jules_namelists):
+    for (namelist, group, param), value in jules_namelists.parameters():
+        pass
+
+
+def test_file_parameters(jules_namelists):
+    for (namelist, group, param), value in jules_namelists._file_parameters():
+        pass
 
 
 def test_getitem(jules_namelists):
@@ -50,6 +60,9 @@ def test_getitem(jules_namelists):
     except IndexError:
         logger.info("Empty namelist: skipping test of (a, b, c) access")
     else:
-        param = jules_namelists[(a, b, c)]
+        _ = jules_namelists[(a, b, c)]
 
     # TODO: test for sensible output when invalid a, b, c, or too many
+
+
+# TODO: test that patching causes correct update of namelists in memory

@@ -3,6 +3,7 @@ import tempfile
 
 from jules_pytk.experiment import JulesExperiment
 
+
 def test_new(jules_config_loaded):
     with tempfile.TemporaryDirectory() as temp_dir:
         experiment_dir = Path(temp_dir) / "experiment"
