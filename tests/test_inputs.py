@@ -23,6 +23,10 @@ def test_read_ascii(suffix):
     assert input.comment.strip() == "comment"
 
 
+def test_read_netcdf(netcdf_input):
+    input = JulesInputNetcdf.read(netcdf_input)
+
+
 def _test_load(jules_input, experiment_dir):
     assert jules_input.data is None
     jules_input.load(experiment_dir / jules_input.path)

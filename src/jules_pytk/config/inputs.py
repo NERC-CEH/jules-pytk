@@ -92,12 +92,8 @@ class JulesInputNetcdf(ConfigBase):
     @classmethod
     def _read(cls, path: Path) -> Self:
 
-        with path.open("r") as file:
-            # open_dataset opens the file for lazy loading
-            with xarray.open_dataset(file) as data:
-                # Load full dataset into memory (could also use load_dataset)
-                logger.warning("Loading full dataset from {self.path}")
-                data.load()
+        logger.warning("Loading full dataset from {path}")
+        data = xarray.load_dataset(path)
 
         return cls(data=data)
 

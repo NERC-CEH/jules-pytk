@@ -52,6 +52,16 @@ def jules_config(experiment_dir, namelists_subdir) -> JulesConfig:
     """An instance of JulesConfig."""
     return JulesConfig.read(experiment_dir, namelists_subdir=namelists_subdir)
 
+@pytest.fixture
+def test_input_dir() -> Path:
+    """Path to experiment directory."""
+    return Path(__file__).parent / "data" / "test_inputs"
+
+
+@pytest.fixture
+def netcdf_input(test_input_dir) -> Path:
+    return test_input_dir / "point_dataset.nc"
+
 
 '''
 @pytest.fixture
