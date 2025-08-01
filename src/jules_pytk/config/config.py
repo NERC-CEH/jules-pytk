@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Generator, Self
 
 from jules_pytk.exceptions import InvalidPath
+from jules_pytk.fs import FilesystemInterface
 from jules_pytk.utils import FrozenDict
 
-from .base import ConfigBase
 from .inputs import JulesInput
 from .namelists import JulesNamelists, find_namelists
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
-class JulesConfig(ConfigBase):
+class JulesConfig(FilesystemInterface):
     """
     Dataclass representing a JULES configuration.
 
@@ -76,12 +76,12 @@ class JulesConfig(ConfigBase):
             namelists=namelists, namelists_subdir=namelists_subdir, inputs=inputs
         )
 
-    def _write(self, path: Path, overwrite: bool) -> None:
+    def _write(self, path: Path) -> None:
         namelists_dir = path / self.namelists_subdir
 
         namelists_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Writing namelists to {namelists_dir}")
-        self.namelists.write(namelists_dir, overwrite=overwrite)
+        self.namelists.write(namelists_dir)
 
         assert self.check_inputs_match_required_files()
 
@@ -89,7 +89,7 @@ class JulesConfig(ConfigBase):
             full_path = path / path_in_namelists
             full_path.parent.mkdir(parents=True, exist_ok=True)
             logger.info(f"Writing input file to {full_path}")
-            self.inputs[str(path_in_namelists)].write(full_path, overwrite=overwrite)
+            self.inputs[str(path_in_namelists)].write(full_path)
 
         output_dir = Path(self.namelists[("output", "jules_output", "output_dir")])
         if output_dir.is_absolute():

@@ -6,7 +6,7 @@ from typing import Any, Generator, Self
 import f90nml
 
 from jules_pytk.exceptions import InvalidPath
-from .base import ConfigBase
+from jules_pytk.fs import FilesystemInterface
 
 __all__ = ["JulesNamelists", "find_namelists"]
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
-class JulesNamelists(ConfigBase):
+class JulesNamelists(FilesystemInterface):
     """Dataclass containing JULES namelists."""
 
     ancillaries: f90nml.Namelist
@@ -68,22 +68,24 @@ class JulesNamelists(ConfigBase):
 
         return cls(**namelists_dict)
 
-    def _write(self, path: Path, overwrite: bool) -> None:
+    def _write(self, path: Path) -> None:
         namelists_dir = path
 
         names = [field.name for field in fields(self)]
 
         for name in names:
             file_path = (namelists_dir / name).with_suffix(".nml")
-            getattr(self, name).write(file_path, force=overwrite)
+            getattr(self, name).write(file_path, force=True)
 
+    def _detach(self) -> Self:
+        return type(self)(**asdict(self))
+
+    """
     def _update(self, new_values: dict[str, dict]) -> None:
         for namelist, patch in new_values.items():
             # Patch the namelists in-memory
             getattr(self, namelist).patch(patch)
-
-    def _detach(self) -> Self:
-        return type(self)(**asdict(self))
+    """
 
     # --------------------- Container access - experimental -----------------
 
