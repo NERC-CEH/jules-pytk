@@ -5,8 +5,8 @@ from typing import Any, Generator, Self
 
 import f90nml
 
-from jules_pytk.exceptions import InvalidPath
-from jules_pytk.fs import FilesystemInterface
+from ..exceptions import InvalidPath
+from ..fs import FilesystemInterface
 
 __all__ = ["JulesNamelists", "find_namelists"]
 
