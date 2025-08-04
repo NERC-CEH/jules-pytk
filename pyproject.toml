@@ -12,6 +12,7 @@ description = "A Python toolkit for working with the JULES land surface model."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "dcdir",
     "f90nml>=1.4.5",
     "netcdf4>=1.7.2",
     "numpy>=2.3.1",
@@ -49,3 +50,6 @@ target-version = "py313"
 
 [tool.jupytext]
 formats = "ipynb,md"
+
+[tool.uv.sources]
+dcdir = { git = "https://github.com/jmarshrossney/dcdir" }

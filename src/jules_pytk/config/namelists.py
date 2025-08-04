@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
-class JulesNamelists(FilesystemInterface):
+class JulesNamelists:
     """Dataclass containing JULES namelists."""
 
     ancillaries: f90nml.Namelist
@@ -57,35 +57,6 @@ class JulesNamelists(FilesystemInterface):
                 # or Path.cwd() in file_path.resolve().parents
             ):
                 raise InvalidPath("Relative paths should not include '..'")
-
-    @classmethod
-    def _read(cls, path: Path) -> Self:
-        names = [field.name for field in fields(cls)]
-
-        namelists_dict = {
-            name: f90nml.read((path / name).with_suffix(".nml")) for name in names
-        }
-
-        return cls(**namelists_dict)
-
-    def _write(self, path: Path) -> None:
-        namelists_dir = path
-
-        names = [field.name for field in fields(self)]
-
-        for name in names:
-            file_path = (namelists_dir / name).with_suffix(".nml")
-            getattr(self, name).write(file_path, force=True)
-
-    def _detach(self) -> Self:
-        return type(self)(**asdict(self))
-
-    """
-    def _update(self, new_values: dict[str, dict]) -> None:
-        for namelist, patch in new_values.items():
-            # Patch the namelists in-memory
-            getattr(self, namelist).patch(patch)
-    """
 
     # --------------------- Container access - experimental -----------------
 

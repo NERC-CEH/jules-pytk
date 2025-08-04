@@ -294,6 +294,11 @@ wheels = [
 ]
 
 [[package]]
+name = "dcdir"
+version = "0.1.0"
+source = { git = "https://github.com/jmarshrossney/dcdir#dd75953040411886a4c10166f5c650d11623ba6a" }
+
+[[package]]
 name = "debugpy"
 version = "1.8.15"
 source = { registry = "https://pypi.org/simple" }
@@ -593,6 +598,7 @@ name = "jules-pytk"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
+    { name = "dcdir" },
     { name = "f90nml" },
     { name = "netcdf4" },
     { name = "numpy" },
@@ -617,6 +623,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "dcdir", git = "https://github.com/jmarshrossney/dcdir" },
     { name = "f90nml", specifier = ">=1.4.5" },
     { name = "jupyter", marker = "extra == 'jupyter'", specifier = ">=1.1.1" },
     { name = "jupytext", marker = "extra == 'jupyter'", specifier = ">=1.17.2" },
