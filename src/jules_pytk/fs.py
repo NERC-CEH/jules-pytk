@@ -67,6 +67,7 @@ class NamelistFileHandler:
     ) -> None:
         data = f90nml.write(data, path, force=overwrite_ok)
 
+
 dcdir.register_handler(".txt", AsciiFileHandler)
 dcdir.register_handler(".dat", AsciiFileHandler)
 dcdir.register_handler(".asc", AsciiFileHandler)
@@ -147,4 +148,3 @@ _class NamelistsDirectory(dcdir.DataclassDirectory):
     triffid_params:  str = field(init=False, default="triffid_params.nml")
     urban:  str = field(init=False, default="urban.nml")
 """
-
