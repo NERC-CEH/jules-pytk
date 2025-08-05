@@ -1,4 +1,3 @@
-import dataclasses
 import logging
 from os import PathLike
 
