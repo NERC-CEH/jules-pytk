@@ -335,7 +335,7 @@ wheels = [
 [[package]]
 name = "dirconf"
 version = "0.1.0"
-source = { git = "https://github.com/jmarshrossney/dirconf.git#dc0e05413e98fdc95eb030c24dd02b0e2bf56f10" }
+source = { git = "https://github.com/jmarshrossney/dirconf#906be1ad817c716acda25662b0d3f5d13fd5f236" }
 
 [[package]]
 name = "executing"
@@ -623,7 +623,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dirconf", git = "https://github.com/jmarshrossney/dirconf.git" },
+    { name = "dirconf", git = "https://github.com/jmarshrossney/dirconf" },
     { name = "f90nml", specifier = ">=1.4.5" },
     { name = "jupyter", marker = "extra == 'jupyter'", specifier = ">=1.1.1" },
     { name = "jupytext", marker = "extra == 'jupyter'", specifier = ">=1.17.2" },

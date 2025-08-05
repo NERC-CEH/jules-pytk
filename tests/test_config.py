@@ -5,9 +5,9 @@ from dirconf import Handler
 import numpy
 import pytest
 
-from jules_pytk.fs import AsciiFileHandler, NetcdfFileHandler, NamelistFileHandler, NamelistsDirectory, JulesDirectory
+from jules_pytk.config import *
 
-@pytest.mark.parametrize("handler", [AsciiFileHandler, NetcdfFileHandler, NamelistFileHandler, NamelistsDirectory])
+@pytest.mark.parametrize("handler", [AsciiFileHandler, NetcdfFileHandler, NamelistFileHandler, NamelistsDirectoryConfig])
 def test_handler_satisfies_protocol(handler):
     assert isinstance(handler(), Handler)
 
@@ -30,17 +30,30 @@ def test_read_namelist(namelist_file):
     _ = handler.read(namelist_file)
 
 def test_read_namelists_dir(namelists_dir):
-    handler = NamelistsDirectory()
+    handler = NamelistsDirectoryConfig()
     _ = handler.read(namelists_dir)
 
-def test_read_jules_dir(experiment_dir):
-    handler = JulesDirectory(
-        namelists="namelists",
-        initial_conditions="inputs/initial_conditions_bb219.dat",
-        driving_data="inputs/Loobos_1997.dat",
-        tile_fractions="inputs/tile_fractions.dat",
+def test_read_inputs_dir(inputs_dir):
+    handler = InputsDirectoryConfig(
+        initial_conditions="initial_conditions_bb219.dat",
+        driving_data="Loobos_1997.dat",
+        tile_fractions="tile_fractions.dat",
     )
-    _ = handler.read(experiment_dir)
+    _ = handler.read(inputs_dir)
+
+def test_read_jules_dir(jules_dir):
+    handler = JulesDirectoryConfig(
+        namelists="namelists",
+        inputs={
+            "path": "inputs",
+            "handler": lambda: InputsDirectoryConfig(
+                initial_conditions="initial_conditions_bb219.dat",
+                driving_data="Loobos_1997.dat",
+                tile_fractions="tile_fractions.dat",
+            )
+        },
+    )
+    _ = handler.read(jules_dir)
 
 
 @pytest.mark.parametrize("suffix", [".txt", ".dat"])
