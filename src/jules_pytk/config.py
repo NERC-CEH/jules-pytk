@@ -10,13 +10,14 @@ import xarray
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "AsciiFileHandler", 
-    "NetcdfFileHandler", 
-    "NamelistFileHandler", 
-    "NamelistsDirectoryConfig", 
-    "InputsDirectoryConfig", 
+    "AsciiFileHandler",
+    "NetcdfFileHandler",
+    "NamelistFileHandler",
+    "NamelistsDirectoryConfig",
+    "InputsDirectoryConfig",
     "JulesDirectoryConfig",
 ]
+
 
 class NamelistFileHandler:
     def read(self, path: str | PathLike) -> dict:
@@ -26,7 +27,7 @@ class NamelistFileHandler:
     def write(
         self, path: str | PathLike, data: dict, *, overwrite_ok: bool = False
     ) -> None:
-        data = f90nml.write(data, path, force=overwrite_ok)
+        f90nml.write(data, path, force=overwrite_ok)
 
 
 _jules_namelists = [
@@ -137,4 +138,3 @@ JulesDirectoryConfig = dirconf.make_directory_config(
         "inputs": {},
     },
 )
-

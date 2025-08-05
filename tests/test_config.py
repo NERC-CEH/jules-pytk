@@ -7,42 +7,65 @@ import pytest
 
 from jules_pytk.config import *
 
-@pytest.mark.parametrize("handler", [AsciiFileHandler, NetcdfFileHandler, NamelistFileHandler, NamelistsDirectoryConfig])
+
+@pytest.mark.parametrize(
+    "handler",
+    [
+        AsciiFileHandler,
+        NetcdfFileHandler,
+        NamelistFileHandler,
+        NamelistsDirectoryConfig,
+    ],
+)
 def test_handler_satisfies_protocol(handler):
     assert isinstance(handler(), Handler)
 
+
 # NOTE: this does not seem to work with fixtures..
-#@pytest.mark.parametrize("path,handler", [(ascii_file, AsciiFileHandler), (netcdf_file, NetcdfFileHandler), (namelist_file, NamelistFileHandler), (namelists_dir, NamelistsDirectory)])
-def _test_handler_read(path, handler):
-    _ = handler().read(path)
+# @pytest.mark.parametrize("path,handler", [(ascii_file, AsciiFileHandler), (netcdf_file, NetcdfFileHandler), (namelist_file, NamelistFileHandler), (namelists_dir, NamelistsDirectory)])
 
 
-def test_read_ascii(ascii_file):
-    handler = AsciiFileHandler()
-    _ = handler.read(ascii_file)
+def _test_handler_io(inpath, handler):
+    config = handler().read(inpath)
 
-def test_read_netcdf(netcdf_file):
-    handler = NetcdfFileHandler()
-    _ = handler.read(netcdf_file)
+    # tmp = Path.cwd() / "tmp"
+    # tmp.mkdir(exist_ok=True)
+    # if True:
+    with tempfile.TemporaryDirectory() as tmp:
+        outpath = Path(tmp) / inpath.name
+        handler().write(outpath, config)
+        config_roundtrip = handler().read(outpath)
 
-def test_read_namelist(namelist_file):
-    handler = NamelistFileHandler()
-    _ = handler.read(namelist_file)
+    # assert config == config_roundtrip
 
-def test_read_namelists_dir(namelists_dir):
-    handler = NamelistsDirectoryConfig()
-    _ = handler.read(namelists_dir)
 
-def test_read_inputs_dir(inputs_dir):
-    handler = InputsDirectoryConfig(
+def test_ascii_file_io(ascii_file):
+    _test_handler_io(ascii_file, AsciiFileHandler)
+
+
+def test_netcdf_file_io(netcdf_file):
+    _test_handler_io(netcdf_file, NetcdfFileHandler)
+
+
+def test_namelist_file_io(namelist_file):
+    _test_handler_io(namelist_file, NamelistFileHandler)
+
+
+def test_namelists_dir_io(namelists_dir):
+    _test_handler_io(namelists_dir, NamelistsDirectoryConfig)
+
+
+def test_inputs_dir_io(inputs_dir):
+    handler_ = lambda: InputsDirectoryConfig(
         initial_conditions="initial_conditions_bb219.dat",
         driving_data="Loobos_1997.dat",
         tile_fractions="tile_fractions.dat",
     )
-    _ = handler.read(inputs_dir)
+    _test_handler_io(inputs_dir, handler_)
 
-def test_read_jules_dir(jules_dir):
-    handler = JulesDirectoryConfig(
+
+def test_jules_dir_io(jules_dir):
+    handler_ = lambda: JulesDirectoryConfig(
         namelists="namelists",
         inputs={
             "path": "inputs",
@@ -50,10 +73,10 @@ def test_read_jules_dir(jules_dir):
                 initial_conditions="initial_conditions_bb219.dat",
                 driving_data="Loobos_1997.dat",
                 tile_fractions="tile_fractions.dat",
-            )
+            ),
         },
     )
-    _ = handler.read(jules_dir)
+    _test_handler_io(jules_dir, handler_)
 
 
 @pytest.mark.parametrize("suffix", [".txt", ".dat"])
