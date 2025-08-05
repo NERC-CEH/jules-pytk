@@ -2,7 +2,7 @@ import dataclasses
 import logging
 from os import PathLike
 
-import dcdir
+import dirconf
 import f90nml
 import numpy
 import xarray
@@ -68,12 +68,8 @@ class NamelistFileHandler:
         data = f90nml.write(data, path, force=overwrite_ok)
 
 
-dcdir.register_handler(".txt", AsciiFileHandler)
-dcdir.register_handler(".dat", AsciiFileHandler)
-dcdir.register_handler(".asc", AsciiFileHandler)
-dcdir.register_handler(".nc", NetcdfFileHandler)
-dcdir.register_handler(".cdf", NetcdfFileHandler)
-dcdir.register_handler(".nml", NamelistFileHandler)
+dirconf.register_handler("ascii", AsciiFileHandler, [".txt", ".dat", ".asc"])
+dirconf.register_handler("netcdf", NetcdfFileHandler, [".nc", ".cdf"])
 
 _jules_namelists = [
     "ancillaries",
@@ -106,45 +102,22 @@ _jules_namelists = [
     "triffid_params",
     "urban",
 ]
-NamelistsDirectory = dataclasses.make_dataclass(
+
+NamelistsDirectory = dirconf.make_directory_config(
     cls_name="NamelistsDirectory",
-    fields=[
-        (name, str, dataclasses.field(init=False, default=f"{name}.nml"))
+    config={
+        name: {"path": f"{name}.nml", "handler": NamelistFileHandler}
         for name in _jules_namelists
-    ],
-    bases=(dcdir.DataclassDirectory,),
+    },
 )
 
-"""
-@dataclass(kw_only=True)
-_class NamelistsDirectory(dcdir.DataclassDirectory):
-    ancillaries: str = field(init=False, default="ancillaries.nml")
-    crop_params: str = field(init=False, default="crop_params.nml")
-    drive: str = field(init=False, default="drive.nml")
-    fire: str = field(init=False, default="fire.nml")
-    imogen: str = field(init=False, default="imogen.nml")
-    initial_conditions:  str = field(init=False, default="initial_conditions.nml")
-    jules_deposition:  str = field(init=False, default="jules_deposition.nml")
-    jules_hydrology:  str = field(init=False, default="jules_hydrology.nml")
-    jules_irrig:  str = field(init=False, default="jules_irrig.nml")
-    jules_prnt_control:  str = field(init=False, default="jules_prnt_control.nml")
-    jules_radiation:  str = field(init=False, default="jules_radiation.nml")
-    jules_rivers:  str = field(init=False, default="jules_rivers.nml")
-    jules_snow:  str = field(init=False, default="jules_snow.nml")
-    jules_soil_biogeochem:  str = field(init=False, default="jules_soil_biogeochem.nml")
-    jules_soil:  str = field(init=False, default="jules_soil.nml")
-    jules_surface:  str = field(init=False, default="jules_surface.nml")
-    jules_surface_types:  str = field(init=False, default="jules_surface_types.nml")
-    jules_vegetation:  str = field(init=False, default="jules_vegetation.nml")
-    jules_water_resources:  str = field(init=False, default="jules_water_resources.nml")
-    model_environment:  str = field(init=False, default="model_environment.nml")
-    model_grid:  str = field(init=False, default="model_grid.nml")
-    nveg_params:  str = field(init=False, default="nveg_params.nml")
-    output:  str = field(init=False, default="output.nml")
-    pft_params:  str = field(init=False, default="pft_params.nml")
-    prescribed_data:  str = field(init=False, default="prescribed_data.nml")
-    science_fixes:  str = field(init=False, default="science_fixes.nml")
-    timesteps:  str = field(init=False, default="timesteps.nml")
-    triffid_params:  str = field(init=False, default="triffid_params.nml")
-    urban:  str = field(init=False, default="urban.nml")
-"""
+JulesDirectory = dirconf.make_directory_config(
+    cls_name="JulesDirectory",
+    config={
+        "namelists": {"handler": NamelistsDirectory},
+        "initial_conditions": {},
+        "driving_data": {},
+        "tile_fractions": {},
+    },
+)
+

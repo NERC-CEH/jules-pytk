@@ -294,11 +294,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dcdir"
-version = "0.1.0"
-source = { git = "https://github.com/jmarshrossney/dcdir#dd75953040411886a4c10166f5c650d11623ba6a" }
-
-[[package]]
 name = "debugpy"
 version = "1.8.15"
 source = { registry = "https://pypi.org/simple" }
@@ -336,6 +331,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/0f/d5/c66da9b79e5bdb124
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61", size = 25604, upload-time = "2021-03-08T10:59:24.45Z" },
 ]
+
+[[package]]
+name = "dirconf"
+version = "0.1.0"
+source = { git = "https://github.com/jmarshrossney/dirconf.git#dc0e05413e98fdc95eb030c24dd02b0e2bf56f10" }
 
 [[package]]
 name = "executing"
@@ -598,7 +598,7 @@ name = "jules-pytk"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
-    { name = "dcdir" },
+    { name = "dirconf" },
     { name = "f90nml" },
     { name = "netcdf4" },
     { name = "numpy" },
@@ -623,7 +623,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dcdir", git = "https://github.com/jmarshrossney/dcdir" },
+    { name = "dirconf", git = "https://github.com/jmarshrossney/dirconf.git" },
     { name = "f90nml", specifier = ">=1.4.5" },
     { name = "jupyter", marker = "extra == 'jupyter'", specifier = ">=1.1.1" },
     { name = "jupytext", marker = "extra == 'jupyter'", specifier = ">=1.17.2" },

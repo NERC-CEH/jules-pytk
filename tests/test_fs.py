@@ -1,11 +1,11 @@
 from pathlib import Path
 import tempfile
 
-from dcdir import Handler
+from dirconf import Handler
 import numpy
 import pytest
 
-from jules_pytk.fs import AsciiFileHandler, NetcdfFileHandler, NamelistFileHandler, NamelistsDirectory
+from jules_pytk.fs import AsciiFileHandler, NetcdfFileHandler, NamelistFileHandler, NamelistsDirectory, JulesDirectory
 
 @pytest.mark.parametrize("handler", [AsciiFileHandler, NetcdfFileHandler, NamelistFileHandler, NamelistsDirectory])
 def test_handler_satisfies_protocol(handler):
@@ -32,6 +32,15 @@ def test_read_namelist(namelist_file):
 def test_read_namelists_dir(namelists_dir):
     handler = NamelistsDirectory()
     _ = handler.read(namelists_dir)
+
+def test_read_jules_dir(experiment_dir):
+    handler = JulesDirectory(
+        namelists="namelists",
+        initial_conditions="inputs/initial_conditions_bb219.dat",
+        driving_data="inputs/Loobos_1997.dat",
+        tile_fractions="inputs/tile_fractions.dat",
+    )
+    _ = handler.read(experiment_dir)
 
 
 @pytest.mark.parametrize("suffix", [".txt", ".dat"])
