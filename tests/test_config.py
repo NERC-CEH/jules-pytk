@@ -79,6 +79,8 @@ def test_jules_dir_io(jules_dir):
     _test_handler_io(jules_dir, handler_)
 
 
+# NOTE: changed back to AsciiFileHandler reads abs paths but does not write them...
+# @pytest.mark.xfail(reason="By design, AsciiFileHandler returns MISSING instead of reading from absolute paths.")
 @pytest.mark.parametrize("suffix", [".txt", ".dat"])
 def test_read_ascii_old(suffix):
     comment = ["# This is a comment.", "# This is a second line."]

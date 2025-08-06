@@ -1,5 +1,6 @@
 import logging
 from os import PathLike
+from typing import TypedDict
 
 import dirconf
 import f90nml
@@ -70,8 +71,16 @@ NamelistsDirectoryConfig = dirconf.make_directory_config(
 )
 
 
+@dirconf.handle_missing(
+    test_on_read=lambda path: path.exists(),
+    test_on_write=lambda path, data, **_: not (data is dirconf.MISSING or path.is_absolute()),
+)
 class AsciiFileHandler:
-    def read(self, path: str | PathLike) -> dict[str, numpy.ndarray | str]:
+    class AsciiData(TypedDict):
+        values: numpy.ndarray
+        comment: str
+
+    def read(self, path: str | PathLike) -> AsciiData:
         comment_lines = []
         with open(path, "r") as file:
             for line in file:
@@ -90,7 +99,7 @@ class AsciiFileHandler:
     def write(
         self,
         path: str | PathLike,
-        data: dict[str, numpy.ndarray | str],
+        data: AsciiData,
         *,
         overwrite_ok: bool = False,
     ) -> None:
@@ -103,6 +112,10 @@ class AsciiFileHandler:
         )
 
 
+@dirconf.handle_missing(
+    test_on_read=lambda path: path.exists() and not path.is_absolute(),
+    test_on_write=lambda path, data, **_: not (data is dirconf.MISSING or path.is_absolute()),
+)
 class NetcdfFileHandler:
     def read(self, path: str | PathLike) -> xarray.Dataset:
         logger.warning("Loading full dataset from {path}")

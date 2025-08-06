@@ -52,4 +52,4 @@ target-version = "py313"
 formats = "ipynb,md"
 
 [tool.uv.sources]
-dirconf = { git = "https://github.com/jmarshrossney/dirconf" }
+dirconf = { path = "../../jmarshrossney/dirconf", editable = true }
