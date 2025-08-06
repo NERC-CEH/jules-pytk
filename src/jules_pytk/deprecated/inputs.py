@@ -7,7 +7,7 @@ import numpy
 import xarray
 
 from jules_pytk.exceptions import InvalidPath
-from .base import ConfigBase
+from jules_pytk.fs import FilesystemInterface
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ __all__ = ["JulesInput", "JulesInputAscii", "JulesInputNetcdf"]
 
 
 @dataclass(kw_only=True)
-class JulesInputAscii(ConfigBase):
+class JulesInputAscii(FilesystemInterface):
     data: numpy.ndarray
     comment: str = ""
 
@@ -51,7 +51,7 @@ class JulesInputAscii(ConfigBase):
 
         return cls(data=data, comment=comment)
 
-    def _write(self, path: Path, overwrite: bool) -> None:
+    def _write(self, path: Path) -> None:
         if path.suffix not in self.valid_extensions:
             raise InvalidPath(
                 f"Path must have a file extension that is one of: {self.valid_extensions}"
@@ -78,7 +78,7 @@ class JulesInputAscii(ConfigBase):
 
 
 @dataclass(kw_only=True)
-class JulesInputNetcdf(ConfigBase):
+class JulesInputNetcdf(FilesystemInterface):
     data: xarray.Dataset
 
     def __eq__(self, other: Any) -> bool:
@@ -97,7 +97,7 @@ class JulesInputNetcdf(ConfigBase):
 
         return cls(data=data)
 
-    def _write(self, path: Path, overwrite: bool) -> None:
+    def _write(self, path: Path) -> None:
         self.data.to_netcdf(path)
 
     def _update(self, new_values: xarray.Dataset) -> None:

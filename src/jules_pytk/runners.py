@@ -104,10 +104,12 @@ class JulesExeRunner:
                     )
 
                     # TODO: fix this - errfile is not readable.
-                    #errfile_contents = errfile.read()
-                    #raise JulesRuntimeError(errfile_contents) from exc
+                    # errfile_contents = errfile.read()
+                    # raise JulesRuntimeError(errfile_contents) from exc
 
-                    raise JulesRuntimeError("An error was thrown by the subprocess. See details in stderr.log") from exc
+                    raise JulesRuntimeError(
+                        "An error was thrown by the subprocess. See details in stderr.log"
+                    ) from exc
 
 
 class JulesUdockerRunner:

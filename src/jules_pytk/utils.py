@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import pathlib
+import types
 
 # logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,3 +44,19 @@ class FrozenDict(dict):
             allowed_keys = list(self.keys())
             raise TypeError(f"New keys may not be added. Allowed keys: {allowed_keys}")
         super().__setitem__(key, value)
+
+
+def dict_to_namespace(dict_: dict) -> types.SimpleNamespace:
+    return json.loads(
+        json.dumps(dict_), object_hook=lambda item: types.SimpleNamespace(**item)
+    )
+
+
+def namespace_to_dict(namespace: types.SimpleNamespace) -> dict:
+    result = {}
+    for key, val in vars(namespace).items():
+        if isinstance(val, types.SimpleNamespace):
+            result[key] = namespace_to_dict(val)
+        else:
+            result[key] = val
+    return result
