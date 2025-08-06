@@ -335,15 +335,7 @@ wheels = [
 [[package]]
 name = "dirconf"
 version = "0.1.0"
-source = { editable = "../../jmarshrossney/dirconf" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.4.1" },
-    { name = "ruff", specifier = ">=0.12.3" },
-]
+source = { git = "https://github.com/jmarshrossney/dirconf#80bf8f828fcfd74e690d719b8fb29bd2a669ae8f" }
 
 [[package]]
 name = "executing"
@@ -631,7 +623,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dirconf", editable = "../../jmarshrossney/dirconf" },
+    { name = "dirconf", git = "https://github.com/jmarshrossney/dirconf" },
     { name = "f90nml", specifier = ">=1.4.5" },
     { name = "jupyter", marker = "extra == 'jupyter'", specifier = ">=1.1.1" },
     { name = "jupytext", marker = "extra == 'jupyter'", specifier = ">=1.17.2" },

@@ -73,7 +73,9 @@ NamelistsDirectoryConfig = dirconf.make_directory_config(
 
 @dirconf.handle_missing(
     test_on_read=lambda path: path.exists(),
-    test_on_write=lambda path, data, **_: not (data is dirconf.MISSING or path.is_absolute()),
+    test_on_write=lambda path, data, **_: not (
+        data is dirconf.MISSING or path.is_absolute()
+    ),
 )
 class AsciiFileHandler:
     class AsciiData(TypedDict):
@@ -114,7 +116,9 @@ class AsciiFileHandler:
 
 @dirconf.handle_missing(
     test_on_read=lambda path: path.exists() and not path.is_absolute(),
-    test_on_write=lambda path, data, **_: not (data is dirconf.MISSING or path.is_absolute()),
+    test_on_write=lambda path, data, **_: not (
+        data is dirconf.MISSING or path.is_absolute()
+    ),
 )
 class NetcdfFileHandler:
     def read(self, path: str | PathLike) -> xarray.Dataset:

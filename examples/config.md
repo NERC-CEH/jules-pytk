@@ -17,7 +17,7 @@ jupyter:
 ```python
 from pathlib import Path
 
-from jules_pytk.config import JulesConfig, JulesNamelists, JulesInput
+from jules_pytk.config import JulesDirectoryConfig, NamelistsDirectoryConfig, InputsDirectoryConfig
 ```
 
 ```python
@@ -32,60 +32,53 @@ repo_root
 ```
 
 ```python
-existing_experiment = repo_root / "tests" / "data" / "experiment"
+template_dir = repo_root / "tests" / "data" / "experiment"
 
-config = JulesConfig.read(existing_experiment)
-
-config.path
+[str(path.relative_to(template_dir)) for path in template_dir.glob("*/*")]
 ```
 
 ```python
-config = config.detach()
-
-config.path is None
-```
-
-## Create new experiment
-
-```python
-new_experiment = Path.cwd() / "new_experiment"
-
-! ls {new_experiment}
-
-config.write(new_experiment, overwrite=True)  # set overwrite=True if necessary
-
-! ls {new_experiment}
-
-del config
-
-new_config = JulesConfig.read(new_experiment)
-```
-
-### Edit a namelist
-
-```python
-! grep "output_period" {new_experiment / "namelists" / "output.nml"}
-
-# Alternative ways of accessing the namelist parameters
-new_config.namelists[("output", "jules_output_profile", "output_period")], \
-new_config.namelists.get("output", "jules_output_profile", "output_period")
+handler = JulesDirectoryConfig(
+    namelists="namelists",
+    inputs={
+        "path": "inputs",
+        "handler": lambda: InputsDirectoryConfig(
+            initial_conditions="initial_conditions_bb219.dat",
+            driving_data="Loobos_1997.dat",
+            tile_fractions="tile_fractions.dat",
+            )
+    }
+)
 ```
 
 ```python
-new_config.namelists.update({"output": {"jules_output_profile": {"output_period": 3600}}})
+config = handler.read(template_dir)
+```
 
-! grep "output_period" {new_experiment / "namelists" / "output.nml"}
+## Edit config and create new experiment
 
-new_config.namelists[("output", "jules_output_profile", "output_period")], \
-new_config.namelists.get("output", "jules_output_profile", "output_period")
+```python
+print("current output period: ", config["namelists"]["output"]["jules_output_profile"]["output_period"])
+
+config["namelists"]["output"]["jules_output_profile"]["output_period"] = 3600
+print("new output period: ", config["namelists"]["output"]["jules_output_profile"]["output_period"])
 ```
 
 ```python
-# Did this get reflected in the file?
+new_dir = Path("new_experiment")
 
-! grep "output_period" {new_experiment / "namelists" / "output.nml"}
+handler.write(new_dir, config, overwrite_ok=True)
+
+[str(path.relative_to(new_dir)) for path in new_dir.glob("*/*")]
 ```
 
 ```python
+# Did the change get reflected?
+! grep "output_period" {new_dir / "namelists" / "output.nml"}
+```
 
+## Run JULES
+
+```python
+# todo
 ```
