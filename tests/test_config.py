@@ -1,11 +1,11 @@
 from pathlib import Path
 import tempfile
 
-from dirconf import Handler
+from metaconf import Handler
 import numpy
 import pytest
 
-from jules_pytk.config import *
+from jules_tools.config import *
 
 
 @pytest.mark.parametrize(

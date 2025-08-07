@@ -2,7 +2,7 @@ import logging
 from os import PathLike
 from typing import TypedDict
 
-import dirconf
+import metaconf
 import f90nml
 import numpy
 import xarray
@@ -62,7 +62,7 @@ _jules_namelists = [
     "urban",
 ]
 
-NamelistsDirectoryConfig = dirconf.make_directory_config(
+NamelistsDirectoryConfig = metaconf.make_metaconfig(
     cls_name="NamelistsDirectoryConfig",
     config={
         name: {"path": f"{name}.nml", "handler": NamelistFileHandler}
@@ -71,10 +71,10 @@ NamelistsDirectoryConfig = dirconf.make_directory_config(
 )
 
 
-@dirconf.handle_missing(
+@metaconf.handle_missing(
     test_on_read=lambda path: path.exists(),
     test_on_write=lambda path, data, **_: not (
-        data is dirconf.MISSING or path.is_absolute()
+        data is metaconf.MISSING or path.is_absolute()
     ),
 )
 class AsciiFileHandler:
@@ -114,10 +114,10 @@ class AsciiFileHandler:
         )
 
 
-@dirconf.handle_missing(
+@metaconf.handle_missing(
     test_on_read=lambda path: path.exists() and not path.is_absolute(),
     test_on_write=lambda path, data, **_: not (
-        data is dirconf.MISSING or path.is_absolute()
+        data is metaconf.MISSING or path.is_absolute()
     ),
 )
 class NetcdfFileHandler:
@@ -134,10 +134,10 @@ class NetcdfFileHandler:
         data.to_netcdf(path)
 
 
-dirconf.register_handler("ascii", AsciiFileHandler, [".txt", ".dat", ".asc"])
-dirconf.register_handler("netcdf", NetcdfFileHandler, [".nc", ".cdf"])
+metaconf.register_handler("ascii", AsciiFileHandler, [".txt", ".dat", ".asc"])
+metaconf.register_handler("netcdf", NetcdfFileHandler, [".nc", ".cdf"])
 
-InputsDirectoryConfig = dirconf.make_directory_config(
+InputsDirectoryConfig = metaconf.make_metaconfig(
     cls_name="InputDirectoryConfig",
     config={
         "initial_conditions": {},
@@ -147,7 +147,7 @@ InputsDirectoryConfig = dirconf.make_directory_config(
 )
 
 
-JulesDirectoryConfig = dirconf.make_directory_config(
+JulesDirectoryConfig = metaconf.make_metaconfig(
     cls_name="JulesDirectoryConfig",
     config={
         "namelists": {"handler": NamelistsDirectoryConfig},

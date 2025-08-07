@@ -1,5 +1,5 @@
 # WIP
-from jules_pytk.runners import JulesExeRunner, JulesUdockerRunner
+from jules_tools.runners import JulesExeRunner, JulesUdockerRunner
 
 
 def _test_exe():

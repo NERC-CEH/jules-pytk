@@ -3,17 +3,17 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jules_pytk"
+name = "jules_tools"
 version = "0.2.0"
 authors = [
     {name = "Joe Marsh Rossney", email = "17361029+jmarshrossney@users.noreply.github.com"}
 ]
 description = "A Python toolkit for working with the JULES land surface model."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
-    "dirconf",
     "f90nml>=1.4.5",
+    "metaconf",
     "netcdf4>=1.7.2",
     "numpy>=2.3.1",
     "pandas>=2.3.1",
@@ -38,6 +38,7 @@ dev = [
 [tool.ruff]
 exclude = [
     ".venv",
+    "tests",
 ]
 line-length = 88
 indent-width = 4
@@ -52,4 +53,4 @@ target-version = "py313"
 formats = "ipynb,md"
 
 [tool.uv.sources]
-dirconf = { git = "https://github.com/jmarshrossney/dirconf" }
+metaconf = { git = "https://github.com/jmarshrossney/metaconf" }
