@@ -14,15 +14,11 @@ from jules_tools.config import *
         AsciiFileHandler,
         NetcdfFileHandler,
         NamelistFileHandler,
-        NamelistsDirectoryConfig,
+        NamelistFilesConfig,
     ],
 )
 def test_handler_satisfies_protocol(handler):
     assert isinstance(handler(), Handler)
-
-
-# NOTE: this does not seem to work with fixtures..
-# @pytest.mark.parametrize("path,handler", [(ascii_file, AsciiFileHandler), (netcdf_file, NetcdfFileHandler), (namelist_file, NamelistFileHandler), (namelists_dir, NamelistsDirectory)])
 
 
 def _test_handler_io(inpath, handler):
@@ -52,11 +48,19 @@ def test_namelist_file_io(namelist_file):
 
 
 def test_namelists_dir_io(namelists_dir):
-    _test_handler_io(namelists_dir, NamelistsDirectoryConfig)
+    _test_handler_io(namelists_dir, NamelistFilesConfig)
 
 
 def test_inputs_dir_io(inputs_dir):
-    handler_ = lambda: InputsDirectoryConfig(
+    handler_ = lambda: InputFilesConfig(
+        initial_conditions="initial_conditions_bb219.dat",
+        driving_data="Loobos_1997.dat",
+        tile_fractions="tile_fractions.dat",
+    )
+    _test_handler_io(inputs_dir, handler_)
+
+def test_inputs_dir_io_with_handler_instance(inputs_dir):
+    handler_ = InputFilesConfig(
         initial_conditions="initial_conditions_bb219.dat",
         driving_data="Loobos_1997.dat",
         tile_fractions="tile_fractions.dat",
@@ -65,11 +69,11 @@ def test_inputs_dir_io(inputs_dir):
 
 
 def test_jules_dir_io(jules_dir):
-    handler_ = lambda: JulesDirectoryConfig(
+    handler_ = lambda: JulesConfig(
         namelists="namelists",
         inputs={
             "path": "inputs",
-            "handler": lambda: InputsDirectoryConfig(
+            "handler": lambda: InputFilesConfig(
                 initial_conditions="initial_conditions_bb219.dat",
                 driving_data="Loobos_1997.dat",
                 tile_fractions="tile_fractions.dat",
@@ -78,6 +82,20 @@ def test_jules_dir_io(jules_dir):
     )
     _test_handler_io(jules_dir, handler_)
 
+@pytest.mark.xfail(raises=TypeError, reason="Handler instance is unhashable, so fail occurs when checking it is matches any key in the handler registry.")
+def test_jules_dir_io_with_handler_inst(jules_dir):
+    handler_ = JulesConfig(
+        namelists="namelists",
+        inputs={
+            "path": "inputs",
+            "handler": InputFilesConfig(
+                initial_conditions="initial_conditions_bb219.dat",
+                driving_data="Loobos_1997.dat",
+                tile_fractions="tile_fractions.dat",
+            ),
+        },
+    )
+    _test_handler_io(jules_dir, handler_)
 
 # NOTE: changed back to AsciiFileHandler reads abs paths but does not write them...
 # @pytest.mark.xfail(reason="By design, AsciiFileHandler returns MISSING instead of reading from absolute paths.")

@@ -13,9 +13,9 @@ __all__ = [
     "AsciiFileHandler",
     "NetcdfFileHandler",
     "NamelistFileHandler",
-    "NamelistsDirectoryConfig",
-    "InputsDirectoryConfig",
-    "JulesDirectoryConfig",
+    "NamelistFilesConfig",
+    "InputFilesConfig",
+    "JulesConfig",
 ]
 
 
@@ -62,8 +62,8 @@ _jules_namelists = [
     "urban",
 ]
 
-NamelistsDirectoryConfig = metaconf.make_metaconfig(
-    cls_name="NamelistsDirectoryConfig",
+NamelistFilesConfig = metaconf.make_metaconfig(
+    cls_name="NamelistFilesConfig",
     config={
         name: {"path": f"{name}.nml", "handler": NamelistFileHandler}
         for name in _jules_namelists
@@ -137,8 +137,10 @@ class NetcdfFileHandler:
 metaconf.register_handler("ascii", AsciiFileHandler, [".txt", ".dat", ".asc"])
 metaconf.register_handler("netcdf", NetcdfFileHandler, [".nc", ".cdf"])
 
-InputsDirectoryConfig = metaconf.make_metaconfig(
-    cls_name="InputDirectoryConfig",
+# TODO: currently this is a minimal subset of possible input files
+# and should be expanded to include more/all of them
+InputFilesConfig = metaconf.make_metaconfig(
+    cls_name="InputFilesConfig",
     config={
         "initial_conditions": {},
         "driving_data": {},
@@ -147,10 +149,12 @@ InputsDirectoryConfig = metaconf.make_metaconfig(
 )
 
 
-JulesDirectoryConfig = metaconf.make_metaconfig(
+JulesConfig = metaconf.make_metaconfig(
     cls_name="JulesDirectoryConfig",
     config={
-        "namelists": {"handler": NamelistsDirectoryConfig},
+        "namelists": {
+            "handler": NamelistFilesConfig
+        },
         "inputs": {},
     },
 )

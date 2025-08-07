@@ -17,7 +17,7 @@ jupyter:
 ```python
 from pathlib import Path
 
-from jules_pytk.config import JulesDirectoryConfig, NamelistsDirectoryConfig, InputsDirectoryConfig
+from jules_tools.config import JulesConfig, NamelistFilesConfig, InputFilesConfig
 ```
 
 ```python
@@ -38,11 +38,11 @@ template_dir = repo_root / "tests" / "data" / "experiment"
 ```
 
 ```python
-handler = JulesDirectoryConfig(
+handler = JulesConfig(
     namelists="namelists",
     inputs={
         "path": "inputs",
-        "handler": lambda: InputsDirectoryConfig(
+        "handler": lambda: InputFilesConfig(
             initial_conditions="initial_conditions_bb219.dat",
             driving_data="Loobos_1997.dat",
             tile_fractions="tile_fractions.dat",
