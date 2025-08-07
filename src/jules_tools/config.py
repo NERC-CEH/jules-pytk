@@ -84,19 +84,33 @@ class AsciiFileHandler:
 
     def read(self, path: str | PathLike) -> AsciiData:
         comment_lines = []
+        num_lines = 0
+
         with open(path, "r") as file:
             for line in file:
-                # remove leading/trailing whitespace and newline
                 line = line.strip()
-                if line.startswith(("#", "!")):
+
+                if line.startswith(("#", "!")):  # comment line
                     comment_lines.append(line)
-                else:
-                    break
+                    continue
+
+                elif line:  # non-empty line
+                    num_lines += 1
+
+                    if num_lines > 1:  # we just need to know if it's >1
+                        break
+
         comment = "\n".join(comment_lines)
 
         values = numpy.loadtxt(str(path), comments=("#", "!"))
 
-        return {"values": values, "comment": comment}
+        # NOTE: Unfortunately numpy.loadtxt/savetxt does not correctly round-trip
+        # single-row data. We need to catch it here and add an extra dimension.
+        if num_lines == 1:
+            assert values.ndim == 1
+            values = values.reshape(1, -1)
+
+        return self.AsciiData(values=values, comment=comment)
 
     def write(
         self,
@@ -152,9 +166,7 @@ InputFilesConfig = metaconf.make_metaconfig(
 JulesConfig = metaconf.make_metaconfig(
     cls_name="JulesDirectoryConfig",
     config={
-        "namelists": {
-            "handler": NamelistFilesConfig
-        },
+        "namelists": {"handler": NamelistFilesConfig},
         "inputs": {},
     },
 )
