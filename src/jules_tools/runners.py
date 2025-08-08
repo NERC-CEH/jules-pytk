@@ -58,7 +58,7 @@ class JulesExeRunner:
         return f"{type(self).__name__}(jules_exe={self.jules_exe})"
 
     def __call__(
-        self, namelists_dir: str | PathLike, run_dir: str | PathLike | None = None
+        self, exec_dir: str | PathLike, namelists_subdir: str | PathLike | None = None
     ) -> None:
         """
         Run the JULES binary.
@@ -66,11 +66,11 @@ class JulesExeRunner:
         Standard output and error are redirected to files `stdout.log` and `stderr.log`.
 
         Args:
-          namelists_dir: Path to the directory containing the namelists.
-          run_dir: Path to the directory in which the jules executable will be run.
+          exec_dir: Path to the directory in which the jules executable should be run.
+          namelists_subdir: Subdirectory of `exec_dir` containin the namelists.
         """
-        namelists_dir = pathlib.Path(namelists_dir).resolve()
-        run_dir = namelists_dir if run_dir is None else pathlib.Path(run_dir).resolve()
+        exec_dir = pathlib.Path(exec_dir)
+        namelists_subdir = namelists_subdir or "."
 
         # TODO: When API for namelists/config is stable.
         # Read output namelist and automatically create output directory
@@ -79,18 +79,18 @@ class JulesExeRunner:
         #     output_path = exec_path / output_path
         # output_path.mkdir(exist_ok=overwrite, parents=True)
 
-        with switch_dir(run_dir, verbose=True):
+        with switch_dir(exec_dir, verbose=True):
             stdout_file = "stdout.log"
             stderr_file = "stderr.log"
 
             log.info("Logging to %s and %s" % (stdout_file, stderr_file))
 
             with open(stdout_file, "w") as outfile, open(stderr_file, "w") as errfile:
-                log.info("Running %s %s" % (self.jules_exe, namelists_dir))
+                log.info("Running %s %s" % (self.jules_exe, namelists_subdir))
 
                 try:
                     subprocess.run(
-                        args=[self.jules_exe, namelists_dir],
+                        args=[self.jules_exe, namelists_subdir],
                         stdout=outfile,
                         stderr=errfile,
                         text=True,
