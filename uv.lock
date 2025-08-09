@@ -946,7 +946,7 @@ wheels = [
 [[package]]
 name = "metaconf"
 version = "0.1.0"
-source = { git = "https://github.com/jmarshrossney/metaconf#bce7de640331e4bd255386ca590456e91afe5eab" }
+source = { git = "https://github.com/jmarshrossney/metaconf#24b834cc47bca9a71abbd5fc5ec9771cb0ba1254" }
 
 [[package]]
 name = "mistune"

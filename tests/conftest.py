@@ -6,7 +6,7 @@ import pytest
 @pytest.fixture
 def jules_dir() -> Path:
     """Path to jules directory."""
-    return Path(__file__).parent / "data" / "experiment"
+    return (Path(__file__).parent / "data" / "experiment").relative_to(Path.cwd())
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def inputs_dir(jules_dir, inputs_subdir) -> Path:
 @pytest.fixture
 def test_inputs_dir() -> Path:
     """Path to experiment directory."""
-    return Path(__file__).parent / "data" / "test_inputs"
+    return (Path(__file__).parent / "data" / "test_inputs").relative_to(Path.cwd())
 
 
 @pytest.fixture

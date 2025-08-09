@@ -58,7 +58,7 @@ class JulesExeRunner:
         return f"{type(self).__name__}(jules_exe={self.jules_exe})"
 
     def __call__(
-        self, namelists_dir: str | PathLike, run_dir: str | PathLike | None = None
+        self, exec_dir: str | PathLike, namelists_subdir: str | PathLike | None = None
     ) -> None:
         """
         Run the JULES binary.
@@ -66,11 +66,11 @@ class JulesExeRunner:
         Standard output and error are redirected to files `stdout.log` and `stderr.log`.
 
         Args:
-          namelists_dir: Path to the directory containing the namelists.
-          run_dir: Path to the directory in which the jules executable will be run.
+          exec_dir: Path to the directory in which the jules executable should be run.
+          namelists_subdir: Subdirectory of `exec_dir` containin the namelists.
         """
-        namelists_dir = pathlib.Path(namelists_dir).resolve()
-        run_dir = namelists_dir if run_dir is None else pathlib.Path(run_dir).resolve()
+        exec_dir = pathlib.Path(exec_dir)
+        namelists_subdir = namelists_subdir or "."
 
         # TODO: When API for namelists/config is stable.
         # Read output namelist and automatically create output directory
@@ -79,18 +79,18 @@ class JulesExeRunner:
         #     output_path = exec_path / output_path
         # output_path.mkdir(exist_ok=overwrite, parents=True)
 
-        with switch_dir(run_dir, verbose=True):
+        with switch_dir(exec_dir, verbose=True):
             stdout_file = "stdout.log"
             stderr_file = "stderr.log"
 
             log.info("Logging to %s and %s" % (stdout_file, stderr_file))
 
             with open(stdout_file, "w") as outfile, open(stderr_file, "w") as errfile:
-                log.info("Running %s %s" % (self.jules_exe, namelists_dir))
+                log.info("Running %s %s" % (self.jules_exe, namelists_subdir))
 
                 try:
                     subprocess.run(
-                        args=[self.jules_exe, namelists_dir],
+                        args=[self.jules_exe, namelists_subdir],
                         stdout=outfile,
                         stderr=errfile,
                         text=True,
@@ -160,33 +160,30 @@ class JulesUdockerRunner:
         return f"{type(self).__name__}(container_name={self.container_name}, mount_point={self.mount_point})"
 
     def __call__(
-        self, namelists_dir: str | PathLike, run_dir: str | PathLike | None = None
+        self, exec_dir: str | PathLike, namelists_subdir: str | PathLike | None = None
     ) -> None:
         """
         Run a containerised version of JULES.
 
         Args:
-          namelists_dir: Path to the directory containing the namelists.
-          run_dir: Path to the directory in which the jules executable will be run. This must be a parent of `namelists_dir`!
+          exec_dir: Path to the directory in which the jules executable should be run.
+          namelists_subdir: Subdirectory of `exec_dir` containin the namelists.
         """
-        namelists_dir = pathlib.Path(namelists_dir).resolve()
-        run_dir = namelists_dir if run_dir is None else pathlib.Path(run_dir).resolve()
+        exec_dir = pathlib.Path(exec_dir)
+        namelists_subdir = namelists_subdir or "."
 
-        # We will mount `run_dir` to /root/run. Hence, `namelists_dir` must be a
-        # subdirectory of `run_dir` or it will not be mounted.
-        if not (namelists_dir.is_relative_to(run_dir)):
-            msg = "`namelists_dir` must either be a subdirectory of `run_dir` or the same directory."
-            raise InvalidPath(msg)
+        assert exec_dir.is_dir()
+        assert (exec_dir / namelists_subdir).is_dir()
 
         subprocess.run(
             [
                 "udocker",
                 "run",
                 "-v",
-                f"{run_dir}:{self.mount_point}",
+                f"{exec_dir}:{self.mount_point}",
                 self.container_name,
                 "-d",
                 self.mount_point,
-                self.mount_point / namelists_dir.relative_to(run_dir),
+                self.mount_point / namelists_subdir,
             ],
         )
