@@ -6,6 +6,7 @@ import numpy
 import pytest
 
 from jules_tools.config import *
+from jules_tools.utils import switch_dir
 
 
 @pytest.mark.parametrize(
@@ -24,15 +25,18 @@ def test_handler_satisfies_protocol(handler):
 def _test_handler_io(inpath, handler):
     config = handler().read(inpath)
 
-    # tmp = Path.cwd() / "tmp"
-    # tmp.mkdir(exist_ok=True)
-    # if True:
     with tempfile.TemporaryDirectory() as tmp:
-        outpath = Path(tmp) / inpath.name
-        handler().write(outpath, config)
-        config_roundtrip = handler().read(outpath)
 
-    # assert config == config_roundtrip
+        # NOTE: in this test we switch working directory rather than doing 
+        # `outpath = Path(tmp) / inpath.name`. This is so that `outpath` is a
+        # relative path. This avoids triggering any filtering based on
+        # absolute paths.
+        with switch_dir(tmp):
+            outpath = inpath.name
+            handler().write(outpath, config)
+            config_roundtrip = handler().read(outpath)
+
+    #assert config == config_roundtrip
 
 
 def test_ascii_file_io(ascii_file):

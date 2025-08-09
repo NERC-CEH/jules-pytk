@@ -1,5 +1,6 @@
 import logging
 from os import PathLike
+import pathlib
 from typing import TypedDict
 
 import metaconf
@@ -143,7 +144,7 @@ class NetcdfFileHandler:
     def write(
         self, path: str | PathLike, data: xarray.Dataset, *, overwrite_ok: bool = False
     ) -> None:
-        if not overwrite_ok and path.is_file():
+        if not overwrite_ok and pathlib.Path(path).is_file():
             raise FileExistsError(f"There is already a file at '{path}'")
         data.to_netcdf(path)
 
