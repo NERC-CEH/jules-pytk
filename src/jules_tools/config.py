@@ -65,19 +65,17 @@ _jules_namelists = [
 
 NamelistFilesConfig = metaconf.make_metaconfig(
     cls_name="NamelistFilesConfig",
-    config={
+    spec={
         name: {"path": f"{name}.nml", "handler": NamelistFileHandler}
         for name in _jules_namelists
     },
 )
 
 
-@metaconf.handle_missing(
-    test_on_read=lambda path: path.exists(),
-    test_on_write=lambda path, data, **_: not (
-        data is metaconf.MISSING or path.is_absolute()
-    ),
+@metaconf.filter(
+    write=lambda path, data, **_: not path.is_absolute(),
 )
+@metaconf.filter_missing(warn=True)
 class AsciiFileHandler:
     class AsciiData(TypedDict):
         values: numpy.ndarray
@@ -129,12 +127,11 @@ class AsciiFileHandler:
         )
 
 
-@metaconf.handle_missing(
-    test_on_read=lambda path: path.exists() and not path.is_absolute(),
-    test_on_write=lambda path, data, **_: not (
-        data is metaconf.MISSING or path.is_absolute()
-    ),
+@metaconf.filter(
+    read=lambda path: not path.is_absolute(),
+    write=lambda path, data, **_: not path.is_absolute(),
 )
+@metaconf.filter_missing(warn=True)
 class NetcdfFileHandler:
     def read(self, path: str | PathLike) -> xarray.Dataset:
         logger.warning("Loading full dataset from {path}")
@@ -156,7 +153,7 @@ metaconf.register_handler("netcdf", NetcdfFileHandler, [".nc", ".cdf"])
 # and should be expanded to include more/all of them
 InputFilesConfig = metaconf.make_metaconfig(
     cls_name="InputFilesConfig",
-    config={
+    spec={
         "initial_conditions": {},
         "driving_data": {},
         "tile_fractions": {},
@@ -166,7 +163,7 @@ InputFilesConfig = metaconf.make_metaconfig(
 
 JulesConfig = metaconf.make_metaconfig(
     cls_name="JulesDirectoryConfig",
-    config={
+    spec={
         "namelists": {"handler": NamelistFilesConfig},
         "inputs": {},
     },
