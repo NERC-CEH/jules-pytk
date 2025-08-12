@@ -98,17 +98,8 @@ class JulesExeRunner:
                     )
 
                 except subprocess.CalledProcessError as exc:
-                    log.error(
-                        "An error was thrown by the subprocess. See details in %s."
-                        % stderr_file
-                    )
-
-                    # TODO: fix this - errfile is not readable.
-                    # errfile_contents = errfile.read()
-                    # raise JulesRuntimeError(errfile_contents) from exc
-
                     raise JulesRuntimeError(
-                        "An error was thrown by the subprocess. See details in stderr.log"
+                        f"An error was thrown by the subprocess. See details in {exec_dir / stderr_file}"
                     ) from exc
 
 
@@ -175,15 +166,20 @@ class JulesUdockerRunner:
         assert exec_dir.is_dir()
         assert (exec_dir / namelists_subdir).is_dir()
 
-        subprocess.run(
-            [
-                "udocker",
-                "run",
-                "-v",
-                f"{exec_dir}:{self.mount_point}",
-                self.container_name,
-                "-d",
-                self.mount_point,
-                self.mount_point / namelists_subdir,
-            ],
-        )
+        try:
+            subprocess.run(
+                [
+                    "udocker",
+                    "run",
+                    "-v",
+                    f"{exec_dir}:{self.mount_point}",
+                    self.container_name,
+                    "-d",
+                    self.mount_point,
+                    self.mount_point / namelists_subdir,
+                ],
+            )
+        except subprocess.CalledProcessError as exc:
+            # TODO: attempt to differentiate between udocker errors
+            # and Jules errors.
+            raise UdockerError("udocker threw an error") from exc
