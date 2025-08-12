@@ -1,9 +1,9 @@
 # Jules Tools
 
-This package aims to collect useful Python tools for working with the [Joint UK Land Environment Simulator](https://jules.jchmr.org/) (JULES).
+The [Joint UK Land Environment Simulator](https://jules.jchmr.org/) (JULES) is a [land surface model](https://en.wikipedia.org/wiki/Land_surface_models_(climate)) that has been developed over the last 20 years by a community of UK researchers coordinated by the [Met Office](https://www.metoffice.gov.uk/) and the [UK Centre for Ecology & Hydrology](https://www.ceh.ac.uk/).
 
-> [!IMPORTANT]
-> This is essentially a by-product of my work on other projects. This development model is unlikely to change going forward.
+The purpose of this package is to collect useful Python tools for working with Jules.
+
 
 ## Getting started
 
@@ -103,4 +103,6 @@ There is no one-size-fits-all for these steps, but I would like to make some pro
 
 Contributions are very welcome. Please feel free to raise an issue or open a pull request.
 
+> [!IMPORTANT]
+> This is essentially a by-product of my work on other projects. This development model is unlikely to change going forward.
 
